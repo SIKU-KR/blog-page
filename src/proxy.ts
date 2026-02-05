@@ -5,17 +5,17 @@ import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip i18n for admin routes - admin is Korean only
-  if (pathname.startsWith('/admin') || pathname.startsWith('/login')) {
+  // Skip i18n for admin routes and resume page
+  if (pathname.startsWith('/admin') || pathname.startsWith('/login') || pathname === '/resume') {
     // JWT authentication check
     const authHeader = request.headers.get('authorization');
     const hasAuthHeader = authHeader?.startsWith('Bearer ');
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Middleware] ${pathname} - Auth Header: ${hasAuthHeader ? 'YES' : 'NO'}`);
+      console.log(`[Proxy] ${pathname} - Auth Header: ${hasAuthHeader ? 'YES' : 'NO'}`);
     }
 
     return NextResponse.next();

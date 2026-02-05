@@ -34,11 +34,7 @@ export default function HeroSection({
             </p>
 
             <div className="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
-              <Link
-                href="https://bam-siku.notion.site/Bumshik-Park-25e9bea4526b80709b86c27ac52437dc?source=copy_link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="/resume">
                 <Button variant="primary" size="md">
                   Resume
                 </Button>

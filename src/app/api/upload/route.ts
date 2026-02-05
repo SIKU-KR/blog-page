@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     // 폼 데이터 추출
     const formData = await request.formData();
-    const imageFile = formData.get('image');
+    const imageFile = formData.get('file');
 
     if (!imageFile) {
       console.error('이미지 파일 없음');
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 백엔드 서버로 전송 시도 (Cloudflare Workers)
-    const API_URL = 'https://admin-worker.peter012677.workers.dev';
+    const API_URL = 'https://blog-server.peter012677.workers.dev';
     const cookieHeader = request.headers.get('cookie') || '';
 
     // 쿠키 정보 로깅
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     try {
       // 새로운 FormData 객체 생성
       const serverFormData = new FormData();
-      serverFormData.append('image', imageFile);
+      serverFormData.append('file', imageFile);
 
       // 요청 헤더 설정
       const headers: HeadersInit = {

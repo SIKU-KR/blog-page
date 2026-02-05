@@ -5,6 +5,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@formatjs/intl-localematcher', 'tslib'],
   experimental: {
     serverActions: {
       bodySizeLimit: '20mb'

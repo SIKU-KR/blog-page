@@ -38,7 +38,7 @@ export class APIClient {
       baseURL: API_URL,
       withCredentials: false, // JWT auth doesn't need cookies
       headers: {
-        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       timeout: 60000,
     });
@@ -47,7 +47,7 @@ export class APIClient {
       baseURL: API_URL,
       withCredentials: false, // Public API는 쿠키 불필요
       headers: {
-        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       timeout: 30000, // 더 짧은 타임아웃 (CDN 엣지)
     });
