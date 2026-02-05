@@ -1,7 +1,6 @@
 import { LoginRequest, UploadImageResponse } from '../../types';
 import { APIClient, API_ENDPOINTS } from './client';
 import { setToken, getToken } from './auth';
-import axios from 'axios';
 
 export class ImagesService {
   private client: APIClient;
@@ -22,27 +21,14 @@ export class ImagesService {
         throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
       }
 
-      // Use admin-worker endpoint with JWT authentication
-      const adminApiUrl = 'https://admin-worker.peter012677.workers.dev';
-      const response = await axios.post<{
-        success: boolean;
-        data: UploadImageResponse;
-        error: null;
-      }>(`${adminApiUrl}${API_ENDPOINTS.ADMIN_IMAGES}`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // axios will automatically set multipart/form-data with boundary
-        },
+      const response = await this.client.request<UploadImageResponse>({
+        url: API_ENDPOINTS.ADMIN_IMAGES,
+        method: 'POST',
+        data: formData,
       });
 
-      console.log('이미지 업로드 응답:', response.data);
-
-      // Backend returns { success: true, data: { url, key }, error: null }
-      if (response.data.success && response.data.data) {
-        return response.data.data;
-      }
-
-      throw new Error('이미지 업로드에 실패했습니다.');
+      console.log('이미지 업로드 응답:', response);
+      return response;
     } catch (error) {
       console.error('이미지 업로드 오류:', error);
       throw error;
