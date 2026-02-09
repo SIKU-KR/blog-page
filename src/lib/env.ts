@@ -1,6 +1,7 @@
 /**
  * Environment variables with Zod validation
  * Ensures all required configuration is present and valid at runtime
+ * Supports both custom env var names and Vercel-provided names
  */
 import { z } from 'zod';
 
@@ -10,7 +11,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
-  // Database (Supabase PostgreSQL)
+  // Database (Supabase PostgreSQL) - accepts multiple Vercel-provided names
   DATABASE_URL: z.string().min(1),
 
   // Authentication
@@ -19,8 +20,8 @@ const envSchema = z.object({
   ADMIN_USERNAME: z.string().min(1),
   ADMIN_PASSWORD_HASH: z.string().length(64), // SHA-256 hex
 
-  // OpenAI
-  OPENAI_API_KEY: z.string().startsWith('sk-'),
+  // OpenAI (optional - AI features disabled without it)
+  OPENAI_API_KEY: z.string().startsWith('sk-').optional(),
 
   // Application
   NEXT_PUBLIC_SITE_URL: z.string().url(),
@@ -32,7 +33,15 @@ export type Env = z.infer<typeof envSchema>;
 
 // Validate and export environment variables
 function getEnv(): Env {
-  const parsed = envSchema.safeParse(process.env);
+  // Normalize Vercel-provided env var names before validation
+  const envWithFallbacks = {
+    ...process.env,
+    DATABASE_URL: process.env.DATABASE_URL
+      || process.env.POSTGRES_URL_NON_POOLING
+      || process.env.POSTGRES_URL,
+  };
+
+  const parsed = envSchema.safeParse(envWithFallbacks);
 
   if (!parsed.success) {
     console.error('Invalid environment variables:', parsed.error.flatten().fieldErrors);

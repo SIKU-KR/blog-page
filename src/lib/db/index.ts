@@ -11,7 +11,9 @@ let connection: postgres.Sql | null = null;
 
 function getConnection() {
   if (!connection) {
-    const databaseUrl = process.env.DATABASE_URL;
+    const databaseUrl = process.env.DATABASE_URL
+      || process.env.POSTGRES_URL_NON_POOLING
+      || process.env.POSTGRES_URL;
     if (!databaseUrl) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
