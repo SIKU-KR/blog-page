@@ -32,9 +32,13 @@ export class APIClient {
   private static instance: APIClient;
 
   private constructor() {
-    // 로컬 API 라우트 사용 (Fullstack Next.js)
-    // baseURL을 빈 문자열로 설정하면 현재 도메인의 API 라우트 사용
-    const API_URL = '';
+    // 서버사이드에서는 절대 URL 필요 (SSR/serverless 환경)
+    // 클라이언트(브라우저)에서는 빈 문자열 → 현재 도메인의 API 라우트 사용
+    const API_URL = typeof window === 'undefined'
+      ? (process.env.NEXT_PUBLIC_SITE_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+        || 'http://localhost:3000')
+      : '';
 
     this.adminClient = axios.create({
       baseURL: API_URL,

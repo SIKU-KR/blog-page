@@ -1,6 +1,7 @@
 /**
- * PATCH /api/posts/[id]/views
+ * PATCH /api/posts/[slug]/views
  * Increment post view counter
+ * Note: slug param here receives the post ID as a string (e.g., "123")
  */
 import { NextRequest } from 'next/server';
 import { postService } from '@/lib/services';
@@ -9,11 +10,11 @@ import { ValidationError, NotFoundError, parseId } from '@/lib/utils/validation'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { id } = await params;
-    const postId = parseId(id);
+    const { slug } = await params;
+    const postId = parseId(slug);
 
     if (postId === null) {
       return errorResponse('Invalid post ID', 400);
@@ -29,7 +30,7 @@ export async function PATCH(
     if (error instanceof ValidationError) {
       return errorResponse(error.message, 400);
     }
-    console.error('PATCH /api/posts/[id]/views error:', error);
+    console.error('PATCH /api/posts/[slug]/views error:', error);
     return errorResponse('Internal server error', 500);
   }
 }
