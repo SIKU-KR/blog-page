@@ -16,6 +16,15 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production'
   },
+  // Supabase Storage image domain
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+    ],
+  },
   // 301 redirect from old /posts/* URLs to new /* URLs
   async redirects() {
     return [

@@ -212,7 +212,7 @@ export class PostsService {
     try {
       logger.debug('사이트맵 요청');
       const response = await this.client.request<string[]>({
-        url: '/sitemap',
+        url: '/api/sitemap',
         method: 'GET',
         domain: 'public', // Public API 사용
       });

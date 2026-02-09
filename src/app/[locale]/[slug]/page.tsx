@@ -197,29 +197,12 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
 export async function generateStaticParams() {
   try {
-    const sitemap = await api.posts.getSitemap();
-
-    if (sitemap && Array.isArray(sitemap)) {
-      const params: { locale: string; slug: string }[] = [];
-
-      for (const path of sitemap) {
-        const slug = path.replace('/posts/', '').replace('/', '');
-        params.push({ locale: 'ko', slug });
-        params.push({ locale: 'en', slug });
-      }
-
-      return params;
-    }
-
-    const postsData = await api.posts.getList();
-    if (!postsData?.content || !Array.isArray(postsData.content)) {
-      return [];
-    }
+    const { sitemapService } = await import('@/lib/services');
+    const sitemap = await sitemapService.getSitemapData();
 
     const params: { locale: string; slug: string }[] = [];
-    for (const post of postsData.content) {
-      params.push({ locale: 'ko', slug: post.slug });
-      params.push({ locale: 'en', slug: post.slug });
+    for (const entry of sitemap) {
+      params.push({ locale: entry.locale, slug: entry.slug });
     }
 
     return params;
