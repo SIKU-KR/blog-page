@@ -1,6 +1,6 @@
 'use client';
 
-import { usePostsWithParams } from '@/features/posts/hooks';
+import { useInfinitePosts } from '@/features/posts/hooks';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Container from '../../ui/Container';
@@ -20,26 +20,10 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
   const t = useTranslations('hero');
   const tPost = useTranslations('post');
 
-  // SWR hook handles all data fetching, caching, and URL param parsing
-  const { posts, page, isLoading } = usePostsWithParams(initialPosts);
+  // SWR hook for infinite scroll
+  const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore } = useInfinitePosts(initialPosts);
 
-  // Simple URL param updater
-  const updateParams = (updates: Record<string, string | undefined>) => {
-    const params = new URLSearchParams();
-
-    const newParams = {
-      page: String(page),
-      ...updates,
-    };
-
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value) params.set(key, value);
-    });
-
-    router.push(`/?${params.toString()}`);
-  };
-
-  if (isLoading && !posts) {
+  if (isLoading && !posts.length) {
     return (
       <Container size="md">
         <Loading />
@@ -60,8 +44,10 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
 
       <div className="py-2">
         <BlogSection
-          posts={posts || initialPosts}
-          onPageChange={newPage => updateParams({ page: String(newPage) })}
+          posts={posts}
+          onLoadMore={() => setSize(size + 1)}
+          hasMore={!isReachingEnd}
+          isLoadingMore={isLoadingMore}
           translations={{
             noPosts: tPost('noPosts'),
             loadError: tPost('loadError'),
