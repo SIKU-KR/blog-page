@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { api } from '@/lib/api/index';
 import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
 import { useToast } from '@/components/ui/Toast';
@@ -18,16 +18,13 @@ interface VelogWriteEditorProps {
   initialValues: {
     title: string;
     content: string;
-    tags: string[];
     summary?: string;
     slug?: string;
     createdAt?: string;
   };
-  existingTags: string[];
   onSave: (data: {
     title: string;
     content: string;
-    tags: string[];
     summary: string;
     slug: string;
     createdAt?: string;
@@ -38,7 +35,6 @@ interface VelogWriteEditorProps {
 
 export default function VelogWriteEditor({
   initialValues,
-  existingTags,
   onSave,
   onCancel,
   isSubmitting,
@@ -52,9 +48,6 @@ export default function VelogWriteEditor({
     setTitle,
     content,
     setContent,
-    tags,
-    addTag,
-    removeTag,
     summary,
     setSummary,
     slug,
@@ -76,10 +69,6 @@ export default function VelogWriteEditor({
     setIsSummarizing,
     isGeneratingSlug,
     setIsGeneratingSlug,
-    tagInput,
-    setTagInput,
-    showTagSuggestions,
-    setShowTagSuggestions,
     lastAutoSavedAt,
     setLastAutoSavedAt,
     loadDraft,
@@ -89,7 +78,6 @@ export default function VelogWriteEditor({
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLTextAreaElement>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previousDraftJSONRef = useRef<string | null>(null);
 
@@ -105,7 +93,6 @@ export default function VelogWriteEditor({
     initializeFromProps({
       title: initialValues.title,
       content: initialValues.content,
-      tags: initialValues.tags,
       summary: initialValues.summary,
       slug: initialValues.slug,
       scheduledAt: isFutureDate ? initialValues.createdAt : null,
@@ -172,7 +159,6 @@ export default function VelogWriteEditor({
         normalizedTitle ||
         snapshot.content.trim() ||
         snapshot.summary.trim() ||
-        snapshot.tags.length > 0 ||
         snapshot.slug.trim();
 
       if (!hasContent) {
@@ -196,7 +182,6 @@ export default function VelogWriteEditor({
           id: 'auto-draft',
           title: draftTitle,
           content: snapshot.content,
-          tags: snapshot.tags,
           summary: snapshot.summary,
           slug: snapshot.slug,
           timestamp,
@@ -239,7 +224,6 @@ export default function VelogWriteEditor({
         id: `${timestamp}-${draftTitle}`,
         title: draftTitle,
         content,
-        tags,
         summary,
         slug,
         timestamp,
@@ -256,7 +240,7 @@ export default function VelogWriteEditor({
     } finally {
       setIsManualSaving(false);
     }
-  }, [title, content, tags, summary, slug, getDraftsList, addToast]);
+  }, [title, content, summary, slug, getDraftsList, addToast]);
 
   // 임시저장 글 불러오기
   const handleLoadDraft = useCallback(
@@ -264,7 +248,6 @@ export default function VelogWriteEditor({
       loadDraft({
         title: draft.title || '',
         content: draft.content || '',
-        tags: draft.tags || [],
         summary: draft.summary || '',
         slug: draft.slug || '',
         scheduledAt: null,
@@ -368,39 +351,6 @@ export default function VelogWriteEditor({
       editorPanelRef.current.scrollTop = scrollTop;
     }
   };
-
-  // 태그 추가 (with UI cleanup)
-  const handleAddTag = (tagName: string) => {
-    addTag(tagName);
-    setTagInput('');
-    setShowTagSuggestions(false);
-  };
-
-  // 태그 입력 핸들러 (출간 모달용)
-  const handleTagInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setTagInput(value);
-    setShowTagSuggestions(value.length > 0);
-  };
-
-  // 태그 입력 키 핸들러
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      handleAddTag(tagInput);
-    } else if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
-      removeTag(tags[tags.length - 1]);
-    }
-  };
-
-  // 필터된 태그 제안
-  const filteredSuggestions = useMemo(
-    () =>
-      existingTags
-        .filter(tag => tag.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(tag))
-        .slice(0, 5),
-    [existingTags, tagInput, tags]
-  );
 
   // 이미지 업로드 처리
   const handleImageUpload = async (file: File) => {
@@ -523,7 +473,6 @@ export default function VelogWriteEditor({
     const previewData = {
       title,
       content,
-      tags,
       summary,
       timestamp: Date.now(),
     };
@@ -535,7 +484,7 @@ export default function VelogWriteEditor({
       console.error('미리보기 데이터 저장 오류:', error);
       addToast('미리보기를 열 수 없습니다.', 'error');
     }
-  }, [title, content, tags, summary, addToast]);
+  }, [title, content, summary, addToast]);
 
   // slug 유효성 검증
   const validateSlug = (slug: string): string | null => {
@@ -580,7 +529,6 @@ export default function VelogWriteEditor({
       await onSave({
         title,
         content,
-        tags,
         summary,
         slug,
         createdAt: scheduledAt || undefined,
@@ -1014,70 +962,6 @@ export default function VelogWriteEditor({
                 </div>
               </div>
 
-              {/* 태그 입력 */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2">태그</label>
-
-                {/* 기존 태그들 */}
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(tag)}
-                          className="ml-1 text-blue-600 hover:text-blue-800 font-bold"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* 태그 입력 */}
-                <input
-                  ref={tagInputRef}
-                  type="text"
-                  value={tagInput}
-                  onChange={handleTagInput}
-                  onKeyDown={handleTagKeyDown}
-                  onFocus={() => setShowTagSuggestions(tagInput.length > 0)}
-                  onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
-                  placeholder={
-                    tags.length < 10
-                      ? '태그를 입력하고 Enter를 누르세요 (최대 10개)'
-                      : '태그는 최대 10개까지 입력할 수 있습니다'
-                  }
-                  disabled={tags.length >= 10}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm disabled:opacity-50"
-                />
-
-                {/* 태그 제안 */}
-                {showTagSuggestions && filteredSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-30 max-h-40 overflow-y-auto mt-1">
-                    {filteredSuggestions.map((tag, index) => (
-                      <button
-                        type="button"
-                        key={index}
-                        onClick={() => handleAddTag(tag)}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-100 last:border-b-0"
-                      >
-                        #{tag}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                <div className="text-xs text-gray-500 mt-1">
-                  포스트와 관련된 태그를 추가해보세요. 최대 10개까지 가능합니다.
-                </div>
-              </div>
-
               {/* 예약 발행 입력 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">발행 일시</label>
@@ -1180,9 +1064,6 @@ export default function VelogWriteEditor({
                         </p>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>{new Date(draft.timestamp).toLocaleString()}</span>
-                          {draft.tags && draft.tags.length > 0 && (
-                            <span>태그: {draft.tags.join(', ')}</span>
-                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-4">

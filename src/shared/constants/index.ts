@@ -26,7 +26,6 @@ export const SITE_CONFIG = {
 export const SORT_OPTIONS = [
   { value: 'createdAt,desc', label: '최신순' },
   { value: 'createdAt,asc', label: '오래된순' },
-  { value: 'views,desc', label: '조회수순' },
 ] as const;
 
 export type SortOption = (typeof SORT_OPTIONS)[number];

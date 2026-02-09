@@ -1,1 +1,0 @@
-export { useCommentsQuery } from './useCommentsQuery';

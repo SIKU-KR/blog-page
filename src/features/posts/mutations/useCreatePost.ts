@@ -30,7 +30,6 @@ export function useCreatePost() {
         title: input.title,
         content: input.content,
         summary: input.summary,
-        tags: input.tags,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

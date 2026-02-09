@@ -8,7 +8,6 @@ export const DraftSchema = z.object({
   id: z.string().min(1, 'Draft ID는 필수입니다.'),
   title: z.string().default(''),
   content: z.string().default(''),
-  tags: z.array(z.string()).default([]),
   summary: z.string().default(''),
   slug: z.string().default(''),
   timestamp: z.string(),
@@ -27,7 +26,6 @@ export const DraftListSchema = z.array(DraftSchema);
 export const DraftSnapshotSchema = z.object({
   title: z.string(),
   content: z.string(),
-  tags: z.array(z.string()),
   summary: z.string(),
   slug: z.string(),
 });

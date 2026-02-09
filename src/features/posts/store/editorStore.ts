@@ -5,7 +5,6 @@ import { subscribeWithSelector } from 'zustand/middleware';
 export interface DraftSnapshot {
   title: string;
   content: string;
-  tags: string[];
   summary: string;
   slug: string;
   scheduledAt: string | null;
@@ -15,7 +14,6 @@ interface EditorState {
   // Content
   title: string;
   content: string;
-  tags: string[];
   summary: string;
   slug: string;
   scheduledAt: string | null;
@@ -30,10 +28,6 @@ interface EditorState {
   showPublishModal: boolean;
   showDraftModal: boolean;
 
-  // Tag Input (for publish modal)
-  tagInput: string;
-  showTagSuggestions: boolean;
-
   // Feedback
   isDragging: boolean;
   lastAutoSavedAt: Date | null;
@@ -45,9 +39,6 @@ interface EditorActions {
   setContent: (content: string) => void;
   setSummary: (summary: string) => void;
   setSlug: (slug: string) => void;
-  setTags: (tags: string[]) => void;
-  addTag: (tag: string) => void;
-  removeTag: (tag: string) => void;
   setScheduledAt: (date: string | null) => void;
 
   // Loading State Actions
@@ -63,10 +54,6 @@ interface EditorActions {
   closeDraftModal: () => void;
   setShowDraftModal: (value: boolean) => void;
 
-  // Tag Input Actions
-  setTagInput: (value: string) => void;
-  setShowTagSuggestions: (value: boolean) => void;
-
   // Feedback Actions
   setIsDragging: (value: boolean) => void;
   setLastAutoSavedAt: (date: Date | null) => void;
@@ -81,7 +68,6 @@ interface EditorActions {
 const initialState: EditorState = {
   title: '',
   content: '',
-  tags: [],
   summary: '',
   slug: '',
   scheduledAt: null,
@@ -91,8 +77,6 @@ const initialState: EditorState = {
   isGeneratingSlug: false,
   showPublishModal: false,
   showDraftModal: false,
-  tagInput: '',
-  showTagSuggestions: false,
   isDragging: false,
   lastAutoSavedAt: null,
 };
@@ -106,19 +90,6 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     setContent: content => set({ content }),
     setSummary: summary => set({ summary }),
     setSlug: slug => set({ slug }),
-    setTags: tags => set({ tags }),
-    addTag: tag =>
-      set(state => {
-        const trimmedTag = tag.trim();
-        if (!trimmedTag || state.tags.includes(trimmedTag) || state.tags.length >= 10) {
-          return state;
-        }
-        return { tags: [...state.tags, trimmedTag] };
-      }),
-    removeTag: tag =>
-      set(state => ({
-        tags: state.tags.filter(t => t !== tag),
-      })),
     setScheduledAt: scheduledAt => set({ scheduledAt }),
 
     // Loading State Actions
@@ -129,15 +100,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     // Modal Actions
     openPublishModal: () => set({ showPublishModal: true }),
-    closePublishModal: () =>
-      set({ showPublishModal: false, tagInput: '', showTagSuggestions: false }),
+    closePublishModal: () => set({ showPublishModal: false }),
     openDraftModal: () => set({ showDraftModal: true }),
     closeDraftModal: () => set({ showDraftModal: false }),
     setShowDraftModal: value => set({ showDraftModal: value }),
-
-    // Tag Input Actions
-    setTagInput: value => set({ tagInput: value }),
-    setShowTagSuggestions: value => set({ showTagSuggestions: value }),
 
     // Feedback Actions
     setIsDragging: value => set({ isDragging: value }),
@@ -148,7 +114,6 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       set({
         title: draft.title || '',
         content: draft.content || '',
-        tags: draft.tags || [],
         summary: draft.summary || '',
         slug: draft.slug || '',
         scheduledAt: draft.scheduledAt || null,
@@ -159,7 +124,6 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       set({
         title: values.title || '',
         content: values.content || '',
-        tags: values.tags || [],
         summary: values.summary || '',
         slug: values.slug || '',
         scheduledAt: values.scheduledAt || null,
@@ -168,8 +132,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     reset: () => set(initialState),
 
     getSnapshot: () => {
-      const { title, content, tags, summary, slug, scheduledAt } = get();
-      return { title, content, tags, summary, slug, scheduledAt };
+      const { title, content, summary, slug, scheduledAt } = get();
+      return { title, content, summary, slug, scheduledAt };
     },
   }))
 );
@@ -179,7 +143,6 @@ export const useEditorContent = () =>
   useEditorStore(state => ({
     title: state.title,
     content: state.content,
-    tags: state.tags,
     summary: state.summary,
     slug: state.slug,
     scheduledAt: state.scheduledAt,
@@ -197,12 +160,6 @@ export const useEditorModals = () =>
   useEditorStore(state => ({
     showPublishModal: state.showPublishModal,
     showDraftModal: state.showDraftModal,
-  }));
-
-export const useEditorTagInput = () =>
-  useEditorStore(state => ({
-    tagInput: state.tagInput,
-    showTagSuggestions: state.showTagSuggestions,
   }));
 
 export const useEditorFeedback = () =>

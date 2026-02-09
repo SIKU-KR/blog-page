@@ -22,42 +22,15 @@
   "post": {
     "publishedAt": "발행일",
     "updatedAt": "수정일",
-    "views": "조회수",
-    "viewsCount": "{count} 읽음",
     "readMore": "더 읽기",
-    "tags": "태그",
     "relatedPosts": "추천 게시물",
-    "comments": "댓글",
-    "writeComment": "댓글 작성",
-    "noComments": "아직 댓글이 없습니다. 첫 댓글을 작성해보세요!",
     "noPosts": "게시글이 없습니다.",
     "loadError": "블로그 게시물을 불러오는 중 오류가 발생했습니다.",
     "availableIn": "이 글은 다른 언어로도 제공됩니다"
   },
-  "sort": {
-    "views": "조회순",
-    "latest": "최신순"
-  },
-  "comment": {
-    "nickname": "닉네임",
-    "nicknamePlaceholder": "닉네임을 입력하세요",
-    "randomChange": "랜덤 변경",
-    "content": "댓글 내용",
-    "contentPlaceholder": "댓글을 입력해주세요",
-    "submit": "댓글 등록",
-    "submitting": "등록 중...",
-    "validationError": "작성자 이름과 댓글 내용을 모두 입력해주세요.",
-    "submitSuccess": "댓글이 등록되었습니다!",
-    "submitError": "댓글 작성 중 오류가 발생했습니다.",
-    "loadError": "댓글을 불러오는 중 오류가 발생했습니다.",
-    "nicknameRequired": "닉네임을 입력해주세요",
-    "contentRequired": "댓글 내용을 입력해주세요",
-    "noDate": "날짜 정보 없음"
-  },
   "admin": {
     "dashboard": "대시보드",
     "posts": "게시글",
-    "comments": "댓글",
     "newPost": "새 게시글",
     "edit": "수정",
     "delete": "삭제",

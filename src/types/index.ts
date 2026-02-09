@@ -19,13 +19,11 @@ export interface Post {
   title: string;
   content: string;
   summary: string;
-  tags?: string[];
   locale?: string;
   originalPostId?: number | null;
   availableLocales?: LocaleInfo[];
   createdAt: string;
   updatedAt: string;
-  views?: number;
   canonicalPath?: string;
   relatedPosts?: RelatedPost[];
 }
@@ -35,11 +33,9 @@ export interface PostSummary {
   slug: string;
   title: string;
   summary: string;
-  tags?: string[];
   state?: 'draft' | 'published';
   createdAt: string;
   updatedAt: string;
-  views?: number;
 }
 
 // Admin API 전용 타입 (scheduled 상태 포함)
@@ -48,11 +44,9 @@ export interface AdminPostSummary {
   slug: string;
   title: string;
   summary: string | null;
-  tags: string[];
   state: 'draft' | 'published' | 'scheduled';
   createdAt: string;
   updatedAt: string;
-  views: number;
   hasTranslation?: boolean;
 }
 
@@ -61,22 +55,6 @@ export interface AdminPostsResponse {
   totalElements: number;
   pageNumber: number;
   pageSize: number;
-}
-
-// 태그 관련 타입
-export interface Tag {
-  id: number;
-  name: string;
-  createdAt: string;
-  postCount: number;
-}
-
-// 댓글 관련 타입
-export interface Comment {
-  id: string; // UUID format (changed from number for new backend)
-  authorName: string;
-  content: string;
-  createdAt: string;
 }
 
 // API 에러 관련 타입
@@ -96,7 +74,6 @@ export interface CreatePostRequest {
   slug: string;
   content: string;
   summary: string;
-  tags: string[];
   state: 'draft' | 'published';
   /** ISO 8601 형식. 미래 날짜면 예약 발행 */
   createdAt?: string;
@@ -107,18 +84,10 @@ export interface UpdatePostRequest {
   slug: string;
   content: string;
   summary?: string;
-  tags?: string[];
   state: 'draft' | 'published'; // Required by new backend
   /** ISO 8601 형식. 미래 날짜면 예약 발행, 재예약 가능 */
   createdAt?: string;
 }
-
-export interface CreateCommentRequest {
-  author: string;
-  content: string;
-}
-
-// 카테고리 관련 요청 타입은 제거되었습니다. 태그는 게시물 편집으로 관리합니다.
 
 export interface LoginRequest {
   username: string;
@@ -140,7 +109,6 @@ export interface APIResponse<T> {
 }
 
 export type GetPostsResponse = APIResponse<PostListResponse>;
-export type GetTagsResponse = APIResponse<Tag[]>;
 
 // 이미지 업로드 관련 타입
 export interface UploadImageResponse {
@@ -149,7 +117,7 @@ export interface UploadImageResponse {
 }
 
 // 정렬 관련 타입
-export type SortOption = 'createdAt,desc' | 'createdAt,asc' | 'views,desc' | 'views,asc';
+export type SortOption = 'createdAt,desc' | 'createdAt,asc';
 
 export interface SortOptionInfo {
   value: SortOption;

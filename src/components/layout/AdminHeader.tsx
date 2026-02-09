@@ -22,7 +22,6 @@ export default function AdminHeader() {
 
   const menuItems = [
     { label: '게시글 관리', path: '/admin/posts' },
-    { label: '댓글 관리', path: '/admin/comments' },
     { label: '벡터 관리', path: '/admin/vectors' },
   ];
 

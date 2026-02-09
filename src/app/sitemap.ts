@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { api } from '@/lib/api/index';
+import { sitemapService } from '@/lib/services';
 import { defaultMetadata } from '@/lib/metadata';
 import { SITE_URL, normalizeSiteUrl } from '@/lib/site';
 import { routing } from '@/i18n/routing';
@@ -24,13 +24,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = normalizeSiteUrl(baseCandidate);
 
   try {
-    // 백엔드 /sitemap API를 사용하여 최신 업데이트 순 slug 경로 리스트 조회
-    const sitemapPaths = await api.posts.getSitemap();
-
-    if (!Array.isArray(sitemapPaths)) {
-      console.error('Invalid sitemap data format:', sitemapPaths);
-      throw new Error('Invalid sitemap response format');
-    }
+    // DB에서 직접 사이트맵 데이터 조회
+    const sitemapData = await sitemapService.getSitemapData();
+    const sitemapPaths = sitemapData.map(entry => `/${entry.slug}`);
 
     const currentTime = new Date().toISOString();
     const entries: MetadataRoute.Sitemap = [];

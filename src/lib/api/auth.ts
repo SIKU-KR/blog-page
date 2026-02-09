@@ -74,7 +74,7 @@ export class AuthService {
   async checkSession(): Promise<SessionResponse> {
     try {
       const response = await this.client.request<SessionResponse>({
-        url: '/session',
+        url: API_ENDPOINTS.SESSION,
         method: 'GET',
         headers: {
           Accept: 'application/json',

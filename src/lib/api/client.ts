@@ -6,17 +6,15 @@ import { logger } from '@/lib/utils/logger';
 // API 도메인 타입
 export type APIDomain = 'admin' | 'public';
 
-// API 엔드포인트 상수
+// API 엔드포인트 상수 (로컬 API 라우트 사용)
 export const API_ENDPOINTS = {
-  POSTS: '/posts',
-  ADMIN_POSTS: '/admin/posts',
-  TAGS: '/tags',
-  COMMENTS: '/comments',
-  ADMIN_COMMENTS: '/admin/comments',
-  ADMIN_IMAGES: '/admin/images',
-  AI_SUMMARY: '/admin/ai/summary',
-  AI_SLUG: '/admin/ai/slug',
-  LOGIN: '/login',
+  POSTS: '/api/posts',
+  ADMIN_POSTS: '/api/admin/posts',
+  ADMIN_IMAGES: '/api/admin/images',
+  AI_SUMMARY: '/api/admin/ai/summary',
+  AI_SLUG: '/api/admin/ai/slug',
+  LOGIN: '/api/auth/login',
+  SESSION: '/api/auth/session',
 } as const;
 
 // 확장된 AxiosRequestConfig (도메인 선택 옵션 추가)
@@ -31,12 +29,17 @@ export class APIClient {
   private static instance: APIClient;
 
   private constructor() {
-    // 통합 백엔드 API URL (Cloudflare Workers)
-    const API_URL = 'https://blog-server.peter012677.workers.dev';
+    // 서버사이드에서는 절대 URL 필요 (SSR/serverless 환경)
+    // 클라이언트(브라우저)에서는 빈 문자열 → 현재 도메인의 API 라우트 사용
+    const API_URL = typeof window === 'undefined'
+      ? (process.env.NEXT_PUBLIC_SITE_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+        || 'http://localhost:3000')
+      : '';
 
     this.adminClient = axios.create({
       baseURL: API_URL,
-      withCredentials: false, // JWT auth doesn't need cookies
+      withCredentials: true, // 쿠키 기반 세션 지원
       headers: {
         'Accept': 'application/json',
       },
@@ -45,11 +48,11 @@ export class APIClient {
 
     this.publicClient = axios.create({
       baseURL: API_URL,
-      withCredentials: false, // Public API는 쿠키 불필요
+      withCredentials: true, // 쿠키 기반 세션 지원
       headers: {
         'Accept': 'application/json',
       },
-      timeout: 30000, // 더 짧은 타임아웃 (CDN 엣지)
+      timeout: 30000,
     });
 
     this.setupInterceptors();
