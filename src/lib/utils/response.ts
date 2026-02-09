@@ -69,3 +69,28 @@ export function paginatedResponse<T>(
 ): NextResponse<SuccessResponse<PaginatedResponse<T>>> {
   return successResponse(data);
 }
+
+/**
+ * Global API Error handler wrapper
+ */
+import { ValidationError, NotFoundError } from './validation';
+
+export function withErrorHandling(
+  handler: (request: any, context: any) => Promise<NextResponse>
+) {
+  return async (request: any, context: any) => {
+    try {
+      return await handler(request, context);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return errorResponse(error.message, 400);
+      }
+      if (error instanceof NotFoundError) {
+        return errorResponse(error.message, 404);
+      }
+
+      console.error(`API Error [${request.method} ${request.url}]:`, error);
+      return errorResponse('Internal server error', 500);
+    }
+  };
+}

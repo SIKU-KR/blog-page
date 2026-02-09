@@ -57,29 +57,7 @@ export class PostService {
     sort?: string;
   }): Promise<PaginatedResponse<PostListItem>> {
     const { locale = 'ko', page = 0, size = 10, sort = 'createdAt,desc' } = options;
-
-    // Validate pagination
-    const paginationErrors = validatePagination({ page, size });
-    if (paginationErrors.length > 0) {
-      throw new ValidationError(paginationErrors.join(', '));
-    }
-
-    // Validate sorting
-    const allowedSortFields = ['createdAt', 'updatedAt', 'title'];
-    const sortErrors = validateSorting(sort, allowedSortFields);
-    if (sortErrors.length > 0) {
-      throw new ValidationError(sortErrors.join(', '));
-    }
-
-    const [sortField, sortDirection] = sort.split(',');
-    const fieldMapping: Record<string, keyof typeof posts.$inferSelect> = {
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
-      title: 'title',
-    };
-    const dbField = fieldMapping[sortField];
-    const orderFn = sortDirection === 'asc' ? asc : desc;
-    const offset = page * size;
+    const { offset, orderFn, dbField } = this.validateAndGetParams({ page, size, sort });
 
     const now = new Date().toISOString();
 
@@ -98,9 +76,8 @@ export class PostService {
       .from(posts)
       .where(
         and(
-          eq(posts.state, 'published'),
           eq(posts.locale, locale),
-          sql`${posts.createdAt} <= ${now}`
+          ...this.getPublishedConditions()
         )
       )
       .orderBy(orderFn(posts[dbField]))
@@ -110,10 +87,8 @@ export class PostService {
     // Get total count
     const totalElements = await this.countPublicPosts(locale);
 
-    const content: PostListItem[] = postResults;
-
     return {
-      content,
+      content: postResults,
       totalElements,
       pageNumber: page,
       pageSize: size,
@@ -130,27 +105,7 @@ export class PostService {
     sort?: string;
   }): Promise<PaginatedResponse<PostListItem>> {
     const { locale, page = 0, size = 10, sort = 'createdAt,desc' } = options;
-
-    const paginationErrors = validatePagination({ page, size });
-    if (paginationErrors.length > 0) {
-      throw new ValidationError(paginationErrors.join(', '));
-    }
-
-    const allowedSortFields = ['createdAt', 'updatedAt', 'title'];
-    const sortErrors = validateSorting(sort, allowedSortFields);
-    if (sortErrors.length > 0) {
-      throw new ValidationError(sortErrors.join(', '));
-    }
-
-    const [sortField, sortDirection] = sort.split(',');
-    const fieldMapping: Record<string, keyof typeof posts.$inferSelect> = {
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
-      title: 'title',
-    };
-    const dbField = fieldMapping[sortField];
-    const orderFn = sortDirection === 'asc' ? asc : desc;
-    const offset = page * size;
+    const { offset, orderFn, dbField } = this.validateAndGetParams({ page, size, sort });
 
     const conditions = locale ? [eq(posts.locale, locale)] : [];
 
@@ -173,10 +128,7 @@ export class PostService {
       .offset(offset);
 
     const postIds = postResults.map(p => p.id);
-
-    // Get translation status
     const translatedIds = await this.getTranslatedOriginalIds(postIds);
-
     const totalElements = await this.countAdminPosts(locale);
     const now = new Date();
 
@@ -410,6 +362,42 @@ export class PostService {
 
   // Private helper methods
 
+  private getPublishedConditions() {
+    const now = new Date().toISOString();
+    return [
+      eq(posts.state, 'published'),
+      sql`${posts.createdAt} <= ${now}`
+    ];
+  }
+
+  private validateAndGetParams(options: { page: number; size: number; sort: string }) {
+    const { page, size, sort } = options;
+
+    const paginationErrors = validatePagination({ page, size });
+    if (paginationErrors.length > 0) {
+      throw new ValidationError(paginationErrors.join(', '));
+    }
+
+    const allowedSortFields = ['createdAt', 'updatedAt', 'title'];
+    const sortErrors = validateSorting(sort, allowedSortFields);
+    if (sortErrors.length > 0) {
+      throw new ValidationError(sortErrors.join(', '));
+    }
+
+    const [sortField, sortDirection] = sort.split(',');
+    const fieldMapping: Record<string, keyof typeof posts.$inferSelect> = {
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
+      title: 'title',
+    };
+
+    return {
+      offset: page * size,
+      orderFn: sortDirection === 'asc' ? asc : desc,
+      dbField: fieldMapping[sortField] || 'createdAt',
+    };
+  }
+
   private async getTranslatedOriginalIds(postIds: number[]): Promise<Set<number>> {
     if (postIds.length === 0) return new Set();
 
@@ -422,13 +410,11 @@ export class PostService {
   }
 
   private async countPublicPosts(locale: string): Promise<number> {
-    const now = new Date().toISOString();
-
     const result = await db
       .select({ count: sql<number>`count(*)` })
       .from(posts)
       .where(
-        and(eq(posts.state, 'published'), eq(posts.locale, locale), sql`${posts.createdAt} <= ${now}`)
+        and(eq(posts.locale, locale), ...this.getPublishedConditions())
       );
 
     return result[0]?.count || 0;
@@ -448,18 +434,16 @@ export class PostService {
   }
 
   private async findPublishedBySlug(slug: string): Promise<Post | null> {
-    const now = new Date().toISOString();
     const result = await db
       .select()
       .from(posts)
-      .where(and(eq(posts.slug, slug), eq(posts.state, 'published'), sql`${posts.createdAt} <= ${now}`))
+      .where(and(eq(posts.slug, slug), ...this.getPublishedConditions()))
       .limit(1);
 
     return result[0] || null;
   }
 
   private async findPublishedBySlugAndLocale(slug: string, locale: string): Promise<Post | null> {
-    const now = new Date().toISOString();
     const result = await db
       .select()
       .from(posts)
@@ -467,8 +451,7 @@ export class PostService {
         and(
           eq(posts.slug, slug),
           eq(posts.locale, locale),
-          eq(posts.state, 'published'),
-          sql`${posts.createdAt} <= ${now}`
+          ...this.getPublishedConditions()
         )
       )
       .limit(1);
@@ -477,11 +460,10 @@ export class PostService {
   }
 
   private async findPublishedById(id: number): Promise<Post | null> {
-    const now = new Date().toISOString();
     const result = await db
       .select()
       .from(posts)
-      .where(and(eq(posts.id, id), eq(posts.state, 'published'), sql`${posts.createdAt} <= ${now}`))
+      .where(and(eq(posts.id, id), ...this.getPublishedConditions()))
       .limit(1);
 
     return result[0] || null;

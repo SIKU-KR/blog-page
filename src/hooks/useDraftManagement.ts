@@ -1,23 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/lib/utils/logger';
+import { draftStorage, type Draft, type DraftSnapshot } from '@/lib/utils/draft-storage';
 
-const DRAFTS_KEY = 'velog-drafts';
 const AUTO_SAVE_INTERVAL = 30000; // 30초
-
-export interface DraftSnapshot {
-  title: string;
-  content: string;
-  tags: string[];
-  summary: string;
-  slug: string;
-}
-
-export interface Draft extends DraftSnapshot {
-  id: string;
-  timestamp: string;
-  displayName: string;
-  isAutoSave?: boolean;
-}
 
 /**
  * 임시저장 관리 Hook
@@ -36,17 +21,6 @@ export function useDraftManagement(currentDraft: DraftSnapshot) {
     latestDraftRef.current = currentDraft;
   }, [currentDraft]);
 
-  // Draft 목록 가져오기
-  const getDraftsList = useCallback((): Draft[] => {
-    try {
-      const saved = localStorage.getItem(DRAFTS_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      logger.error('임시저장 목록 로드 오류', error);
-      return [];
-    }
-  }, []);
-
   // 자동 저장 로직
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -59,38 +33,26 @@ export function useDraftManagement(currentDraft: DraftSnapshot) {
         snapshot.tags.length > 0 ||
         snapshot.slug.trim();
 
-      if (!hasContent) {
-        return;
-      }
+      if (!hasContent) return;
 
       try {
         const serializedSnapshot = JSON.stringify(snapshot);
-        if (serializedSnapshot === previousDraftJSONRef.current) {
-          return; // 변경사항 없으면 스킵
-        }
-
-        const drafts = getDraftsList();
-        const filteredDrafts = Array.isArray(drafts)
-          ? drafts.filter((draft: Draft) => !draft?.isAutoSave)
-          : [];
+        if (serializedSnapshot === previousDraftJSONRef.current) return;
 
         const now = new Date();
         const timestamp = now.toISOString();
         const draftTitle = normalizedTitle || '제목 없음';
 
         const autoDraft: Draft = {
+          ...snapshot,
           id: 'auto-draft',
           title: draftTitle,
-          content: snapshot.content,
-          tags: snapshot.tags,
-          summary: snapshot.summary,
-          slug: snapshot.slug,
           timestamp,
           displayName: `${now.toLocaleString()} - ${draftTitle}`,
           isAutoSave: true,
         };
 
-        localStorage.setItem(DRAFTS_KEY, JSON.stringify([autoDraft, ...filteredDrafts]));
+        draftStorage.addDraft(autoDraft);
         previousDraftJSONRef.current = serializedSnapshot;
         setLastAutoSavedAt(now);
 
@@ -100,96 +62,51 @@ export function useDraftManagement(currentDraft: DraftSnapshot) {
       }
     }, AUTO_SAVE_INTERVAL);
 
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [getDraftsList]);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   // 마지막 자동저장 시간 초기화
   useEffect(() => {
-    const drafts = getDraftsList();
-    if (!Array.isArray(drafts)) return;
-
-    const autoDraft = drafts.find((draft: Draft) => draft?.isAutoSave && draft?.timestamp);
+    const drafts = draftStorage.getDrafts();
+    const autoDraft = drafts.find((draft) => draft.isAutoSave && draft.timestamp);
     if (autoDraft) {
       setLastAutoSavedAt(new Date(autoDraft.timestamp));
     }
-  }, [getDraftsList]);
+  }, []);
 
   // 수동 저장
   const saveDraft = useCallback((): boolean => {
     const snapshot = latestDraftRef.current;
-
-    if (!snapshot.title.trim() && !snapshot.content.trim()) {
-      return false;
-    }
+    if (!snapshot.title.trim() && !snapshot.content.trim()) return false;
 
     try {
-      const drafts = getDraftsList();
       const now = new Date();
       const timestamp = now.toISOString();
       const draftTitle = snapshot.title.trim() || '제목 없음';
 
-      // 같은 제목의 기존 임시저장 제거
-      const filteredDrafts = drafts.filter((draft: Draft) => draft.title !== draftTitle);
-
       const newDraft: Draft = {
-        id: `${timestamp}-${draftTitle}`,
+        ...snapshot,
+        id: `manual-${Date.now()}`,
         title: draftTitle,
-        content: snapshot.content,
-        tags: snapshot.tags,
-        summary: snapshot.summary,
-        slug: snapshot.slug,
         timestamp,
         displayName: `${now.toLocaleString()} - ${draftTitle}`,
       };
 
-      const updatedDrafts = [newDraft, ...filteredDrafts];
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts));
-
+      draftStorage.addDraft(newDraft);
       logger.debug('수동 임시저장 완료', { draftTitle });
       return true;
     } catch (error) {
       logger.error('수동 임시저장 오류', error);
       return false;
     }
-  }, [getDraftsList]);
-
-  // Draft 삭제
-  const deleteDraft = useCallback(
-    (draftId: string): boolean => {
-      try {
-        const drafts = getDraftsList();
-        const filteredDrafts = drafts.filter((draft: Draft) => draft.id !== draftId);
-        localStorage.setItem(DRAFTS_KEY, JSON.stringify(filteredDrafts));
-
-        logger.debug('임시저장 삭제 완료', { draftId });
-        return true;
-      } catch (error) {
-        logger.error('임시저장 삭제 오류', error);
-        return false;
-      }
-    },
-    [getDraftsList]
-  );
-
-  // 모든 Draft 삭제
-  const deleteAllDrafts = useCallback((): boolean => {
-    try {
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify([]));
-      logger.debug('임시저장 전체 삭제 완료');
-      return true;
-    } catch (error) {
-      logger.error('임시저장 전체 삭제 오류', error);
-      return false;
-    }
   }, []);
 
   return {
     lastAutoSavedAt,
-    getDraftsList,
+    getDraftsList: useCallback(() => draftStorage.getDrafts(), []),
     saveDraft,
-    deleteDraft,
-    deleteAllDrafts,
+    deleteDraft: useCallback((id: string) => draftStorage.deleteDraft(id), []),
+    deleteAllDrafts: useCallback(() => draftStorage.clearAll(), []),
   };
 }
+
