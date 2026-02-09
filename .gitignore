@@ -39,5 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-playwright-mcp/
-serena/
+.playwright-mcp/*
+.serena/*
