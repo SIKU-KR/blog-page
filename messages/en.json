@@ -22,42 +22,15 @@
   "post": {
     "publishedAt": "Published",
     "updatedAt": "Updated",
-    "views": "Views",
-    "viewsCount": "{count} views",
     "readMore": "Read more",
-    "tags": "Tags",
     "relatedPosts": "Related Posts",
-    "comments": "Comments",
-    "writeComment": "Write a comment",
-    "noComments": "No comments yet. Be the first to comment!",
     "noPosts": "No posts found.",
     "loadError": "Failed to load blog posts.",
     "availableIn": "This post is also available in"
   },
-  "sort": {
-    "views": "Popular",
-    "latest": "Latest"
-  },
-  "comment": {
-    "nickname": "Nickname",
-    "nicknamePlaceholder": "Enter your nickname",
-    "randomChange": "Random",
-    "content": "Comment",
-    "contentPlaceholder": "Write your comment here",
-    "submit": "Submit",
-    "submitting": "Submitting...",
-    "validationError": "Please enter both your name and comment.",
-    "submitSuccess": "Comment submitted!",
-    "submitError": "Failed to submit comment.",
-    "loadError": "Failed to load comments.",
-    "nicknameRequired": "Please enter a nickname",
-    "contentRequired": "Please enter a comment",
-    "noDate": "Date unavailable"
-  },
   "admin": {
     "dashboard": "Dashboard",
     "posts": "Posts",
-    "comments": "Comments",
     "newPost": "New Post",
     "edit": "Edit",
     "delete": "Delete",

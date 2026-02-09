@@ -2,38 +2,21 @@
  * Post Service
  * Business logic for post management with Drizzle ORM
  */
-import { db, posts, tags, postTags, type Post, type NewPost } from '@/lib/db';
-import { eq, and, desc, asc, sql, ne, isNull } from 'drizzle-orm';
+import { db, posts, type Post, type NewPost } from '@/lib/db';
+import { eq, and, desc, asc, sql, ne } from 'drizzle-orm';
 import { ValidationError, NotFoundError, validatePagination, validateSorting } from '@/lib/utils/validation';
 import type { PaginatedResponse } from '@/lib/utils/response';
-
-export interface PostWithTags {
-  id: number;
-  slug: string;
-  title: string;
-  content: string;
-  summary: string | null;
-  tags: string[];
-  state: string;
-  locale: string;
-  originalPostId: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-  views: number;
-}
 
 export interface PostListItem {
   id: number;
   slug: string;
   title: string;
   summary: string | null;
-  tags: string[];
   state: string;
   locale: string;
   originalPostId: number | null;
   createdAt: Date;
   updatedAt: Date;
-  views: number;
   hasTranslation?: boolean;
 }
 
@@ -47,6 +30,10 @@ export interface RelatedPost {
 export interface AvailableLocale {
   locale: string;
   slug: string;
+}
+
+interface PostWithLocales extends Post {
+  availableLocales: AvailableLocale[];
 }
 
 export class PostService {
@@ -64,13 +51,12 @@ export class PostService {
    * Get public posts with pagination
    */
   async getPosts(options: {
-    tag?: string | null;
     locale?: string;
     page?: number;
     size?: number;
     sort?: string;
   }): Promise<PaginatedResponse<PostListItem>> {
-    const { tag = null, locale = 'ko', page = 0, size = 10, sort = 'createdAt,desc' } = options;
+    const { locale = 'ko', page = 0, size = 10, sort = 'createdAt,desc' } = options;
 
     // Validate pagination
     const paginationErrors = validatePagination({ page, size });
@@ -79,7 +65,7 @@ export class PostService {
     }
 
     // Validate sorting
-    const allowedSortFields = ['createdAt', 'updatedAt', 'views', 'title'];
+    const allowedSortFields = ['createdAt', 'updatedAt', 'title'];
     const sortErrors = validateSorting(sort, allowedSortFields);
     if (sortErrors.length > 0) {
       throw new ValidationError(sortErrors.join(', '));
@@ -89,7 +75,6 @@ export class PostService {
     const fieldMapping: Record<string, keyof typeof posts.$inferSelect> = {
       createdAt: 'createdAt',
       updatedAt: 'updatedAt',
-      views: 'views',
       title: 'title',
     };
     const dbField = fieldMapping[sortField];
@@ -98,76 +83,34 @@ export class PostService {
 
     const now = new Date().toISOString();
 
-    // Build query based on tag filter
-    let postsQuery;
-    if (tag) {
-      postsQuery = db
-        .select({
-          id: posts.id,
-          slug: posts.slug,
-          title: posts.title,
-          summary: posts.summary,
-          state: posts.state,
-          locale: posts.locale,
-          originalPostId: posts.originalPostId,
-          createdAt: posts.createdAt,
-          updatedAt: posts.updatedAt,
-          views: posts.views,
-        })
-        .from(posts)
-        .innerJoin(postTags, eq(posts.id, postTags.postId))
-        .innerJoin(tags, eq(postTags.tagId, tags.id))
-        .where(
-          and(
-            eq(posts.state, 'published'),
-            eq(posts.locale, locale),
-            eq(tags.name, tag),
-            sql`${posts.createdAt} <= ${now}`
-          )
+    const postResults = await db
+      .select({
+        id: posts.id,
+        slug: posts.slug,
+        title: posts.title,
+        summary: posts.summary,
+        state: posts.state,
+        locale: posts.locale,
+        originalPostId: posts.originalPostId,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+      })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.state, 'published'),
+          eq(posts.locale, locale),
+          sql`${posts.createdAt} <= ${now}`
         )
-        .orderBy(orderFn(posts[dbField]))
-        .limit(size)
-        .offset(offset);
-    } else {
-      postsQuery = db
-        .select({
-          id: posts.id,
-          slug: posts.slug,
-          title: posts.title,
-          summary: posts.summary,
-          state: posts.state,
-          locale: posts.locale,
-          originalPostId: posts.originalPostId,
-          createdAt: posts.createdAt,
-          updatedAt: posts.updatedAt,
-          views: posts.views,
-        })
-        .from(posts)
-        .where(
-          and(
-            eq(posts.state, 'published'),
-            eq(posts.locale, locale),
-            sql`${posts.createdAt} <= ${now}`
-          )
-        )
-        .orderBy(orderFn(posts[dbField]))
-        .limit(size)
-        .offset(offset);
-    }
-
-    const postResults = await postsQuery;
-
-    // Get tags for each post
-    const postIds = postResults.map(p => p.id);
-    const tagsByPost = await this.getTagsForPosts(postIds);
+      )
+      .orderBy(orderFn(posts[dbField]))
+      .limit(size)
+      .offset(offset);
 
     // Get total count
-    const totalElements = await this.countPublicPosts(tag, locale);
+    const totalElements = await this.countPublicPosts(locale);
 
-    const content: PostListItem[] = postResults.map(post => ({
-      ...post,
-      tags: tagsByPost.get(post.id) || [],
-    }));
+    const content: PostListItem[] = postResults;
 
     return {
       content,
@@ -193,7 +136,7 @@ export class PostService {
       throw new ValidationError(paginationErrors.join(', '));
     }
 
-    const allowedSortFields = ['createdAt', 'updatedAt', 'views', 'title'];
+    const allowedSortFields = ['createdAt', 'updatedAt', 'title'];
     const sortErrors = validateSorting(sort, allowedSortFields);
     if (sortErrors.length > 0) {
       throw new ValidationError(sortErrors.join(', '));
@@ -203,7 +146,6 @@ export class PostService {
     const fieldMapping: Record<string, keyof typeof posts.$inferSelect> = {
       createdAt: 'createdAt',
       updatedAt: 'updatedAt',
-      views: 'views',
       title: 'title',
     };
     const dbField = fieldMapping[sortField];
@@ -223,7 +165,6 @@ export class PostService {
         originalPostId: posts.originalPostId,
         createdAt: posts.createdAt,
         updatedAt: posts.updatedAt,
-        views: posts.views,
       })
       .from(posts)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -232,24 +173,22 @@ export class PostService {
       .offset(offset);
 
     const postIds = postResults.map(p => p.id);
-    const tagsByPost = await this.getTagsForPosts(postIds);
 
     // Get translation status
     const translatedIds = await this.getTranslatedOriginalIds(postIds);
 
     const totalElements = await this.countAdminPosts(locale);
-    const now = new Date().toISOString();
+    const now = new Date();
 
     const content: PostListItem[] = postResults.map(post => {
       let displayState = post.state;
-      if (post.state === 'published' && post.createdAt > now) {
+      if (post.state === 'published' && new Date(post.createdAt) > now) {
         displayState = 'scheduled';
       }
 
       return {
         ...post,
         state: displayState,
-        tags: tagsByPost.get(post.id) || [],
         hasTranslation: translatedIds.has(post.id),
       };
     });
@@ -270,7 +209,7 @@ export class PostService {
     locale?: string
   ): Promise<
     | { redirect: true; slug: string; locale?: string }
-    | { redirect: false; data: PostWithTags & { availableLocales: AvailableLocale[] } }
+    | { redirect: false; data: PostWithLocales }
   > {
     if (!slug) {
       throw new ValidationError('Slug parameter is required');
@@ -309,8 +248,6 @@ export class PostService {
       throw new NotFoundError('Post not found');
     }
 
-    const postTags = await this.getTagsForPost(post.id);
-
     // Get available locales
     const originalId = post.originalPostId || post.id;
     const allVersions = await this.findAllLanguageVersions(originalId);
@@ -319,18 +256,7 @@ export class PostService {
     return {
       redirect: false,
       data: {
-        id: post.id,
-        slug: post.slug,
-        title: post.title,
-        content: post.content,
-        summary: post.summary,
-        tags: postTags,
-        state: post.state,
-        locale: post.locale,
-        originalPostId: post.originalPostId,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
-        views: post.views,
+        ...post,
         availableLocales,
       },
     };
@@ -339,19 +265,14 @@ export class PostService {
   /**
    * Get post by ID (admin)
    */
-  async getPostById(id: number): Promise<PostWithTags | null> {
+  async getPostById(id: number): Promise<Post | null> {
     const post = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
 
     if (post.length === 0) {
       return null;
     }
 
-    const postTags = await this.getTagsForPost(id);
-
-    return {
-      ...post[0],
-      tags: postTags,
-    };
+    return post[0];
   }
 
   /**
@@ -362,17 +283,15 @@ export class PostService {
     title: string;
     content: string;
     summary: string;
-    tags?: string[];
     state: string;
     locale?: string;
     originalPostId?: number | null;
     createdAt?: string;
-  }): Promise<PostWithTags> {
+  }): Promise<Post> {
     const {
       title,
       content,
       summary,
-      tags: tagNames = [],
       state,
       locale = 'ko',
       originalPostId = null,
@@ -396,7 +315,7 @@ export class PostService {
       throw new ValidationError('Slug already exists');
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
     const createdAt = requestedCreatedAt ? new Date(requestedCreatedAt) : now;
 
     const [newPost] = await db
@@ -414,12 +333,7 @@ export class PostService {
       })
       .returning();
 
-    // Associate tags
-    if (tagNames.length > 0) {
-      await this.associateTags(newPost.id, tagNames);
-    }
-
-    return this.getPostById(newPost.id) as Promise<PostWithTags>;
+    return newPost;
   }
 
   /**
@@ -432,18 +346,17 @@ export class PostService {
       title: string;
       content: string;
       summary: string;
-      tags?: string[];
       state: string;
       createdAt?: string;
     }
-  ): Promise<PostWithTags> {
+  ): Promise<Post> {
     const existing = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
 
     if (existing.length === 0) {
       throw new NotFoundError('Post not found');
     }
 
-    const { slug, title, content, summary, tags: tagNames = [], state, createdAt } = postData;
+    const { slug, title, content, summary, state, createdAt } = postData;
 
     // Check slug uniqueness if changing
     if (slug) {
@@ -458,7 +371,7 @@ export class PostService {
       }
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
     const updateData: Partial<NewPost> = {
       title,
       content,
@@ -475,15 +388,9 @@ export class PostService {
       updateData.createdAt = new Date(createdAt);
     }
 
-    await db.update(posts).set(updateData).where(eq(posts.id, postId));
+    const [updated] = await db.update(posts).set(updateData).where(eq(posts.id, postId)).returning();
 
-    // Update tags
-    await db.delete(postTags).where(eq(postTags.postId, postId));
-    if (tagNames.length > 0) {
-      await this.associateTags(postId, tagNames);
-    }
-
-    return this.getPostById(postId) as Promise<PostWithTags>;
+    return updated;
   }
 
   /**
@@ -501,78 +408,7 @@ export class PostService {
     return { deleted: true, id: postId };
   }
 
-  /**
-   * Increment post views
-   */
-  async incrementViews(postId: number): Promise<{ views: number }> {
-    const post = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
-
-    if (post.length === 0) {
-      throw new NotFoundError('Post not found');
-    }
-
-    // Increment views on original post (for unified view count)
-    const targetId = post[0].originalPostId || postId;
-
-    await db
-      .update(posts)
-      .set({ views: sql`${posts.views} + 1` })
-      .where(eq(posts.id, targetId));
-
-    const updated = await db.select({ views: posts.views }).from(posts).where(eq(posts.id, targetId)).limit(1);
-
-    return { views: updated[0]?.views || 0 };
-  }
-
   // Private helper methods
-
-  private async associateTags(postId: number, tagNames: string[]): Promise<void> {
-    for (const tagName of tagNames) {
-      // Find or create tag
-      let tag = await db.select().from(tags).where(eq(tags.name, tagName)).limit(1);
-
-      let tagId: number;
-      if (tag.length === 0) {
-        const [newTag] = await db.insert(tags).values({ name: tagName }).returning({ id: tags.id });
-        tagId = newTag.id;
-      } else {
-        tagId = tag[0].id;
-      }
-
-      await db.insert(postTags).values({ postId, tagId });
-    }
-  }
-
-  private async getTagsForPost(postId: number): Promise<string[]> {
-    const result = await db
-      .select({ name: tags.name })
-      .from(tags)
-      .innerJoin(postTags, eq(tags.id, postTags.tagId))
-      .where(eq(postTags.postId, postId))
-      .orderBy(tags.name);
-
-    return result.map(t => t.name);
-  }
-
-  private async getTagsForPosts(postIds: number[]): Promise<Map<number, string[]>> {
-    if (postIds.length === 0) return new Map();
-
-    const result = await db
-      .select({ postId: postTags.postId, name: tags.name })
-      .from(tags)
-      .innerJoin(postTags, eq(tags.id, postTags.tagId))
-      .where(sql`${postTags.postId} IN ${postIds}`);
-
-    const tagsByPost = new Map<number, string[]>();
-    for (const row of result) {
-      if (!tagsByPost.has(row.postId)) {
-        tagsByPost.set(row.postId, []);
-      }
-      tagsByPost.get(row.postId)!.push(row.name);
-    }
-
-    return tagsByPost;
-  }
 
   private async getTranslatedOriginalIds(postIds: number[]): Promise<Set<number>> {
     if (postIds.length === 0) return new Set();
@@ -585,25 +421,8 @@ export class PostService {
     return new Set(result.filter(r => r.originalPostId !== null).map(r => r.originalPostId!));
   }
 
-  private async countPublicPosts(tag: string | null, locale: string): Promise<number> {
+  private async countPublicPosts(locale: string): Promise<number> {
     const now = new Date().toISOString();
-
-    if (tag) {
-      const result = await db
-        .select({ count: sql<number>`count(distinct ${posts.id})` })
-        .from(posts)
-        .innerJoin(postTags, eq(posts.id, postTags.postId))
-        .innerJoin(tags, eq(postTags.tagId, tags.id))
-        .where(
-          and(
-            eq(posts.state, 'published'),
-            eq(posts.locale, locale),
-            eq(tags.name, tag),
-            sql`${posts.createdAt} <= ${now}`
-          )
-        );
-      return result[0]?.count || 0;
-    }
 
     const result = await db
       .select({ count: sql<number>`count(*)` })

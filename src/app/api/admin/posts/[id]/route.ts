@@ -57,7 +57,6 @@ export async function PUT(
       title: body.title,
       content: body.content,
       summary: body.summary,
-      tags: body.tags,
       state: body.state,
       createdAt: body.createdAt,
     });

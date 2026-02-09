@@ -10,9 +10,6 @@ export type APIDomain = 'admin' | 'public';
 export const API_ENDPOINTS = {
   POSTS: '/api/posts',
   ADMIN_POSTS: '/api/admin/posts',
-  TAGS: '/api/tags',
-  COMMENTS: '/api/comments',
-  ADMIN_COMMENTS: '/api/admin/comments',
   ADMIN_IMAGES: '/api/admin/images',
   AI_SUMMARY: '/api/admin/ai/summary',
   AI_SLUG: '/api/admin/ai/slug',

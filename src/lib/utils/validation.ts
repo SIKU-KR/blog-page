@@ -108,45 +108,6 @@ export function validatePostData(data: Record<string, unknown>): string[] {
     }
   }
 
-  if (data.tags !== undefined) {
-    if (!Array.isArray(data.tags)) {
-      errors.push('Tags must be an array');
-    } else if (data.tags.length > 20) {
-      errors.push('Maximum 20 tags allowed');
-    } else {
-      for (const tag of data.tags) {
-        if (typeof tag !== 'string' || tag.trim().length === 0) {
-          errors.push('Each tag must be a non-empty string');
-          break;
-        }
-      }
-    }
-  }
-
-  return errors;
-}
-
-/**
- * Validate comment creation data
- */
-export function validateCommentData(data: {
-  content?: unknown;
-  author?: unknown;
-}): string[] {
-  const errors: string[] = [];
-
-  if (!data.content || typeof data.content !== 'string') {
-    errors.push('Content is required and must be a string');
-  } else if (data.content.trim().length < 1 || data.content.length > 500) {
-    errors.push('Content must be between 1 and 500 characters');
-  }
-
-  if (!data.author || typeof data.author !== 'string') {
-    errors.push('Author is required and must be a string');
-  } else if (data.author.trim().length < 2 || data.author.length > 20) {
-    errors.push('Author must be between 2 and 20 characters');
-  }
-
   return errors;
 }
 

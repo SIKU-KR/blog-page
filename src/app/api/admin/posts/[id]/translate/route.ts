@@ -47,7 +47,6 @@ export async function POST(
       title: translated.title,
       content: translated.content,
       summary: translated.summary || '',
-      tags: originalPost.tags,
       state: originalPost.state,
       locale: 'en',
       originalPostId: postId,

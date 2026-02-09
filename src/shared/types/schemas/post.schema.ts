@@ -15,11 +15,9 @@ export const PostSchema = z.object({
   title: z.string().min(1, '제목은 필수입니다.'),
   content: z.string().min(1, '내용은 필수입니다.'),
   summary: z.string().min(1, '요약은 필수입니다.'),
-  tags: z.array(z.string()),
   state: z.enum(['draft', 'published']), // Required by new backend
   createdAt: z.string(),
   updatedAt: z.string(),
-  views: z.number().optional(),
   canonicalPath: z.string().optional(),
 });
 
@@ -38,7 +36,6 @@ export const CreatePostSchema = PostSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  views: true,
   canonicalPath: true,
 });
 

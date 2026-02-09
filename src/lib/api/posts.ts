@@ -18,12 +18,11 @@ export class PostsService {
   async getList(
     page: number = 0,
     size: number = 5,
-    tag?: string,
     sort: string = 'createdAt,desc',
     locale: string = 'ko'
   ): Promise<GetPostsResponse['data']> {
     try {
-      logger.debug('게시물 목록 요청', { page, size, tag, sort, locale });
+      logger.debug('게시물 목록 요청', { page, size, sort, locale });
       const response = await this.client.request<GetPostsResponse['data']>({
         url: API_ENDPOINTS.POSTS,
         method: 'GET',
@@ -33,7 +32,6 @@ export class PostsService {
           size,
           sort,
           locale,
-          ...(tag && { tag }),
         },
       });
       logger.debug('게시물 목록 응답', response);
@@ -175,21 +173,6 @@ export class PostsService {
     } catch (error) {
       logger.error('게시물 수정 오류', error);
       throw error;
-    }
-  }
-
-  async incrementViews(postId: number): Promise<void> {
-    try {
-      logger.debug('게시물 조회수 증가 요청', { postId });
-      await this.client.request<void>({
-        url: `${API_ENDPOINTS.POSTS}/${postId}/views`,
-        method: 'PATCH',
-        domain: 'public', // Public worker handles view tracking
-      });
-      logger.debug('게시물 조회수 증가 완료', { postId });
-    } catch (error) {
-      logger.error('게시물 조회수 증가 오류', error);
-      // Silently fail - view tracking is not critical
     }
   }
 

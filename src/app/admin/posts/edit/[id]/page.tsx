@@ -27,27 +27,20 @@ export default function EditPostPage() {
   const postId = params.id as string;
 
   const [post, setPost] = useState<Post | null>(null);
-  const [existingTags, setExistingTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 게시글 데이터와 태그 목록 불러오기
+  // 게시글 데이터 불러오기
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 게시글 데이터와 태그 목록을 병렬로 불러옴
-        const [postData, tagsData] = await Promise.all([
-          api.posts.getAdminOne(parseInt(postId, 10)),
-          api.tags.getList(),
-        ]);
-
+        const postData = await api.posts.getAdminOne(parseInt(postId, 10));
         setPost(postData);
-        setExistingTags(tagsData.map(t => t.name));
         setError(null);
       } catch (err) {
         console.error('데이터 로딩 오류:', err);
-        setError('게시글 또는 태그 정보를 불러오는 중 오류가 발생했습니다.');
+        setError('게시글 정보를 불러오는 중 오류가 발생했습니다.');
       } finally {
         setIsLoading(false);
       }
@@ -60,7 +53,6 @@ export default function EditPostPage() {
   const handleSave = async (formData: {
     title: string;
     content: string;
-    tags: string[];
     summary: string;
     slug: string;
     createdAt?: string;
@@ -74,9 +66,8 @@ export default function EditPostPage() {
         slug: formData.slug,
         content: formData.content,
         summary: formData.summary,
-        tags: formData.tags,
-        state: 'published', // Required by new backend
-        createdAt: formData.createdAt, // 예약 발행/재예약용
+        state: 'published',
+        createdAt: formData.createdAt,
       };
 
       await api.posts.update(parseInt(postId, 10), postData);
@@ -115,12 +106,10 @@ export default function EditPostPage() {
       initialValues={{
         title: post.title,
         content: post.content,
-        tags: post.tags || [],
         summary: post.summary,
         slug: post.slug,
-        createdAt: post.createdAt, // 예약 수정용
+        createdAt: post.createdAt,
       }}
-      existingTags={existingTags}
       isSubmitting={isSaving}
       onSave={handleSave}
       onCancel={handleCancel}

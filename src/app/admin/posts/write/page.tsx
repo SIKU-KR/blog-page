@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api/index';
@@ -24,30 +24,13 @@ const VelogWriteEditor = dynamic(() => import('@/components/admin/VelogWriteEdit
 export default function WritePostPage() {
   useAuthGuard(); // Protect this admin route
   const router = useRouter();
-  const [existingTags, setExistingTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // 태그 목록 불러오기 (추천용)
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const response = await api.tags.getList();
-        setExistingTags(response.map(t => t.name));
-      } catch (err) {
-        console.error('태그 로딩 오류:', err);
-        setError('태그를 불러오는 중 오류가 발생했습니다.');
-      }
-    };
-
-    fetchTags();
-  }, []);
 
   // 게시글 저장
   const handleSave = async (formData: {
     title: string;
     content: string;
-    tags: string[];
     summary: string;
     slug: string;
     createdAt?: string;
@@ -61,9 +44,8 @@ export default function WritePostPage() {
         slug: formData.slug,
         content: formData.content,
         summary: formData.summary,
-        tags: formData.tags,
-        state: 'published', // Required by new backend
-        createdAt: formData.createdAt, // 예약 발행용
+        state: 'published',
+        createdAt: formData.createdAt,
       };
 
       await api.posts.create(postData);
@@ -102,9 +84,7 @@ export default function WritePostPage() {
       initialValues={{
         title: '',
         content: '',
-        tags: [],
       }}
-      existingTags={existingTags}
       isSubmitting={isLoading}
       onSave={handleSave}
       onCancel={handleCancel}

@@ -7,7 +7,6 @@ import { cn } from '@/shared/lib/cn';
 const menuItems = [
   { label: '대시보드', path: '/admin' },
   { label: '게시글 관리', path: '/admin/posts' },
-  { label: '댓글 관리', path: '/admin/comments' },
   { label: '벡터 관리', path: '/admin/vectors' },
 ];
 

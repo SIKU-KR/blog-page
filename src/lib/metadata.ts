@@ -84,19 +84,6 @@ export const homeMetadata: Metadata = {
   description: defaultDescription,
 };
 
-// 카테고리별 메타데이터 생성 함수
-export function getTagMetadata(tagName: string): Metadata {
-  return {
-    title: `#${tagName} | ${siteName}`,
-    description: `${siteName}의 #${tagName} 태그 글 모음입니다.`,
-    openGraph: {
-      title: `#${tagName} | ${siteName}`,
-      description: `${siteName}의 #${tagName} 태그 글 모음입니다.`,
-      url: `${SITE_URL}?tag=${encodeURIComponent(tagName)}`,
-    },
-  };
-}
-
 // 블로그 포스트 메타데이터 생성 함수 (slug 기반)
 export function getPostMetadata(
   title: string,

@@ -1,14 +1,12 @@
-import { PostListResponse, Tag, SortOption } from '@/types';
+import { PostListResponse } from '@/types';
 import { Metadata } from 'next';
-import { homeMetadata, getTagMetadata } from '@/lib/metadata';
+import { homeMetadata } from '@/lib/metadata';
 import HomePage from '@/components/pages/home';
 import { setRequestLocale } from 'next-intl/server';
-import { postService, tagService } from '@/lib/services';
+import { postService } from '@/lib/services';
 
 type SearchParams = {
   page?: string;
-  tag?: string;
-  sort?: string;
 };
 
 type Props = {
@@ -16,51 +14,28 @@ type Props = {
   searchParams: Promise<SearchParams>;
 };
 
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const { locale } = await params;
-  const { tag } = await searchParams;
-
-  if (!tag) {
-    return homeMetadata;
-  }
-
-  try {
-    const tags = await tagService.getActiveTags(locale);
-    const selectedTag = tags.find((t) => t.name === tag);
-
-    if (selectedTag) return getTagMetadata(selectedTag.name);
-  } catch (error) {
-    console.error('Error loading tag data:', error);
-  }
-
+export async function generateMetadata(): Promise<Metadata> {
   return homeMetadata;
 }
 
 export default async function Home({ params, searchParams }: Props) {
   const { locale } = await params;
-  const { page, tag, sort } = await searchParams;
+  const { page } = await searchParams;
 
   // Enable static rendering
   setRequestLocale(locale);
 
   const currentPage = typeof page === 'string' ? parseInt(page, 10) : 1;
-  const sortOption = (sort as SortOption) || 'views,desc';
 
   let postsData: PostListResponse = { content: [], totalElements: 0, pageNumber: 0, pageSize: 5 };
-  let tagsData: Tag[] = [];
 
   try {
-    // 서비스 레이어 직접 호출 (SSR에서 HTTP 자기호출 방지)
-    const [postsResult, tagsResult] = await Promise.all([
-      postService.getPosts({
-        tag: tag || null,
-        locale,
-        page: currentPage - 1,
-        size: 5,
-        sort: sortOption,
-      }),
-      tagService.getActiveTags(locale),
-    ]);
+    const postsResult = await postService.getPosts({
+      locale,
+      page: currentPage - 1,
+      size: 5,
+      sort: 'createdAt,desc',
+    });
 
     postsData = {
       content: postsResult.content.map(p => ({
@@ -68,7 +43,6 @@ export default async function Home({ params, searchParams }: Props) {
         slug: p.slug,
         title: p.title,
         summary: p.summary || '',
-        tags: p.tags,
         state: p.state as 'draft' | 'published',
         createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : String(p.createdAt),
         updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : String(p.updatedAt),
@@ -77,19 +51,6 @@ export default async function Home({ params, searchParams }: Props) {
       pageNumber: postsResult.pageNumber,
       pageSize: postsResult.pageSize,
     };
-
-    tagsData = tagsResult
-      .map(t => ({
-        id: t.id,
-        name: t.name,
-        postCount: t.postCount,
-        createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : String(t.createdAt),
-      }))
-      .sort((a, b) => {
-        const byCount = (b.postCount || 0) - (a.postCount || 0);
-        if (byCount !== 0) return byCount;
-        return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-      });
   } catch (error) {
     console.error('Error loading data:', error);
   }
@@ -97,9 +58,7 @@ export default async function Home({ params, searchParams }: Props) {
   return (
     <HomePage
       initialPosts={postsData}
-      initialTags={tagsData}
       initialPage={currentPage}
-      initialTag={tag}
     />
   );
 }

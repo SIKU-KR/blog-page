@@ -1,17 +1,13 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { PostSummary, Tag, SortOption } from '../../types';
-import { PostList, SortButton } from '@/features/posts/components';
-import { TagSidebar } from '@/features/tags/components';
+import { PostSummary } from '../../types';
+import { PostList } from '@/features/posts/components';
 import ErrorMessage from '../ui/feedback/ErrorMessage';
 
 interface BlogSectionTranslations {
-  tags: string;
   noPosts: string;
   loadError: string;
-  sortViews: string;
-  sortLatest: string;
 }
 
 interface BlogSectionProps {
@@ -21,28 +17,15 @@ interface BlogSectionProps {
     pageNumber: number;
     pageSize: number;
   };
-  tags?: Tag[];
-  selectedTag?: string;
   className?: string;
   onPageChange?: (page: number) => void;
-  currentSort?: SortOption;
-  onSortChange?: (sort: SortOption) => void;
   translations?: BlogSectionTranslations;
 }
 
-/**
- * Optimized BlogSection with React.memo and useMemo
- *
- * Memoizes expensive calculations and prevents unnecessary re-renders
- */
 const BlogSection = memo(function BlogSection({
   posts,
-  tags,
-  selectedTag,
   className = '',
   onPageChange,
-  currentSort,
-  onSortChange,
   translations,
 }: BlogSectionProps) {
   // Memoize pagination calculations (must be called before any early returns)
@@ -54,8 +37,7 @@ const BlogSection = memo(function BlogSection({
     };
   }, [posts]);
 
-  // 데이터가 없는 경우 오류 메시지 표시
-  if (!posts || !tags) {
+  if (!posts) {
     return (
       <section className={`py-2 ${className}`}>
         <ErrorMessage message={translations?.loadError || 'Failed to load blog posts.'} />
@@ -65,40 +47,13 @@ const BlogSection = memo(function BlogSection({
 
   return (
     <section className={`py-2 ${className}`}>
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* 게시글 목록 */}
-        <main className="lg:w-3/4">
-          <div className="flex justify-end items-center mb-4">
-            {currentSort && onSortChange && (
-              <SortButton
-                currentSort={currentSort}
-                onSortChange={onSortChange}
-                translations={{
-                  views: translations?.sortViews || 'Popular',
-                  latest: translations?.sortLatest || 'Latest',
-                }}
-              />
-            )}
-          </div>
-          <PostList
-            posts={posts.content}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-            noPostsText={translations?.noPosts}
-          />
-        </main>
-
-        {/* 사이드바 (태그) */}
-        <aside className="lg:w-1/4 lg:mt-2">
-          <TagSidebar
-            selectedTag={selectedTag}
-            tags={tags}
-            totalPostCount={posts.totalElements}
-            tagsLabel={translations?.tags}
-          />
-        </aside>
-      </div>
+      <PostList
+        posts={posts.content}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        noPostsText={translations?.noPosts}
+      />
     </section>
   );
 });

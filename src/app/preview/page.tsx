@@ -4,12 +4,10 @@ import { useEffect, useState } from 'react';
 import Container from '@/components/ui/Container';
 import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
 import Divider from '@/components/ui/Divider';
-import Link from 'next/link';
 
 interface PreviewData {
   title: string;
   content: string;
-  tags: string[];
   summary: string;
   timestamp: number;
 }
@@ -95,22 +93,6 @@ export default function PreviewPage() {
 
       <article>
         <header className="mb-8">
-          {data.tags && data.tags.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-2">
-              {data.tags
-                .slice()
-                .sort((a, b) => a.localeCompare(b))
-                .map(tag => (
-                  <span
-                    key={tag}
-                    className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-700"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-            </div>
-          )}
-
           <h1 className="text-3xl font-bold mb-2">{data.title || '제목 없음'}</h1>
           <div className="flex items-center text-sm text-gray-500">
             <span className="mr-2">Siku</span>

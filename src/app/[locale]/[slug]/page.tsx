@@ -3,13 +3,12 @@ import { notFound } from 'next/navigation';
 import Container from '@/components/ui/Container';
 import Loading from '@/components/ui/feedback/Loading';
 import ErrorMessage from '@/components/ui/feedback/ErrorMessage';
-import { Comments } from '@/features/comments/components';
 import Divider from '@/components/ui/Divider';
 import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { RelatedPosts, ShareButton, ViewCounter } from '@/features/posts/components';
-import { getPostMetadata, getPostMetadataById } from '@/lib/metadata';
+import { RelatedPosts, ShareButton } from '@/features/posts/components';
+import { getPostMetadata } from '@/lib/metadata';
 import RedirectHandler from '@/components/RedirectHandler';
 import { setRequestLocale } from 'next-intl/server';
 import { getTranslations } from 'next-intl/server';
@@ -102,27 +101,8 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
     return (
       <Container size="md" className="py-4">
-        <ViewCounter postId={post.id.toString()} />
         <article itemScope itemType="https://schema.org/BlogPosting">
           <header className="mb-8">
-            {post.tags && post.tags.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2">
-                {post.tags
-                  .slice()
-                  .sort((a: string, b: string) => a.localeCompare(b))
-                  .map((tag: string) => (
-                    <Link
-                      key={tag}
-                      href={locale === 'ko' ? `/?tag=${encodeURIComponent(tag)}` : `/${locale}?tag=${encodeURIComponent(tag)}`}
-                    >
-                      <span className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-700">
-                        #{tag}
-                      </span>
-                    </Link>
-                  ))}
-              </div>
-            )}
-
             <h1 className="text-3xl font-bold mb-2" itemProp="headline">
               {post.title}
             </h1>
@@ -159,18 +139,6 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
             <RelatedPosts posts={relatedPosts} maxPosts={2} title={t('relatedPosts')} locale={locale} />
           </>
         )}
-
-        <Divider variant="border" />
-
-        <div className="mt-12">
-          <h2 className="text-xl font-bold mb-6 mx-2">{t('comments')}</h2>
-        </div>
-
-        <section>
-          <Suspense fallback={<Loading />}>
-            <Comments postId={post.id.toString()} />
-          </Suspense>
-        </section>
       </Container>
     );
   } catch (err: unknown) {

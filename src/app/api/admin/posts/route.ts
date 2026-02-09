@@ -47,7 +47,6 @@ export async function POST(request: NextRequest) {
       title: body.title,
       content: body.content,
       summary: body.summary,
-      tags: body.tags,
       state: body.state,
       locale: body.locale,
       originalPostId: body.originalPostId,
