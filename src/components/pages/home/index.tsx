@@ -3,6 +3,7 @@
 import { useInfinitePosts } from '@/features/posts/hooks';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useCallback } from 'react';
 import Container from '../../ui/Container';
 import HeroSection from '../../sections/HeroSection';
 import BlogSection from '../../sections/BlogSection';
@@ -22,6 +23,10 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
 
   // SWR hook for infinite scroll
   const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore } = useInfinitePosts(initialPosts);
+
+  const handleLoadMore = useCallback(() => {
+    setSize(prev => prev + 1);
+  }, [setSize]);
 
   if (isLoading && !posts.length) {
     return (
@@ -45,7 +50,7 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
       <div className="py-2">
         <BlogSection
           posts={posts}
-          onLoadMore={() => setSize(size + 1)}
+          onLoadMore={handleLoadMore}
           hasMore={!isReachingEnd}
           isLoadingMore={isLoadingMore}
           translations={{

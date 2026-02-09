@@ -16,6 +16,11 @@ export function useIntersectionObserver({
     enabled = true,
 }: UseIntersectionObserverProps) {
     const ref = useRef<HTMLDivElement | null>(null);
+    const onIntersectRef = useRef(onIntersect);
+
+    useEffect(() => {
+        onIntersectRef.current = onIntersect;
+    }, [onIntersect]);
 
     useEffect(() => {
         if (!enabled) return;
@@ -23,8 +28,8 @@ export function useIntersectionObserver({
         const observer = new IntersectionObserver(
             entries => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting && onIntersect) {
-                        onIntersect();
+                    if (entry.isIntersecting && onIntersectRef.current) {
+                        onIntersectRef.current();
                     }
                 });
             },
@@ -45,7 +50,7 @@ export function useIntersectionObserver({
                 observer.unobserve(currentRef);
             }
         };
-    }, [threshold, root, rootMargin, onIntersect, enabled]);
+    }, [threshold, root, rootMargin, enabled]);
 
     return ref;
 }
