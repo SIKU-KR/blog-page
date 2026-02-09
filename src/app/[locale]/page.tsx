@@ -1,9 +1,9 @@
-import { api } from '@/lib/api/index';
 import { PostListResponse, Tag, SortOption } from '@/types';
 import { Metadata } from 'next';
 import { homeMetadata, getTagMetadata } from '@/lib/metadata';
 import HomePage from '@/components/pages/home';
 import { setRequestLocale } from 'next-intl/server';
+import { postService, tagService } from '@/lib/services';
 
 type SearchParams = {
   page?: string;
@@ -25,7 +25,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   }
 
   try {
-    const tags = await api.tags.getList(locale);
+    const tags = await tagService.getActiveTags(locale);
     const selectedTag = tags.find((t) => t.name === tag);
 
     if (selectedTag) return getTagMetadata(selectedTag.name);
@@ -50,15 +50,46 @@ export default async function Home({ params, searchParams }: Props) {
   let tagsData: Tag[] = [];
 
   try {
-    [postsData, tagsData] = await Promise.all([
-      api.posts.getList(currentPage - 1, 5, tag, sortOption, locale),
-      api.tags.getList(locale),
+    // 서비스 레이어 직접 호출 (SSR에서 HTTP 자기호출 방지)
+    const [postsResult, tagsResult] = await Promise.all([
+      postService.getPosts({
+        tag: tag || null,
+        locale,
+        page: currentPage - 1,
+        size: 5,
+        sort: sortOption,
+      }),
+      tagService.getActiveTags(locale),
     ]);
-    tagsData = tagsData.slice().sort((a, b) => {
-      const byCount = (b.postCount || 0) - (a.postCount || 0);
-      if (byCount !== 0) return byCount;
-      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-    });
+
+    postsData = {
+      content: postsResult.content.map(p => ({
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        summary: p.summary || '',
+        tags: p.tags,
+        state: p.state as 'draft' | 'published',
+        createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : String(p.createdAt),
+        updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : String(p.updatedAt),
+      })),
+      totalElements: postsResult.totalElements,
+      pageNumber: postsResult.pageNumber,
+      pageSize: postsResult.pageSize,
+    };
+
+    tagsData = tagsResult
+      .map(t => ({
+        id: t.id,
+        name: t.name,
+        postCount: t.postCount,
+        createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : String(t.createdAt),
+      }))
+      .sort((a, b) => {
+        const byCount = (b.postCount || 0) - (a.postCount || 0);
+        if (byCount !== 0) return byCount;
+        return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+      });
   } catch (error) {
     console.error('Error loading data:', error);
   }
