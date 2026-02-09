@@ -17,7 +17,7 @@ export class TagService {
    * Get all active tags (tags with at least one published post)
    */
   async getActiveTags(locale?: string): Promise<TagResponse[]> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     // Get tags that have published posts in the specified locale
     let query;

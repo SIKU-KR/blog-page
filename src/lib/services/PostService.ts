@@ -96,7 +96,7 @@ export class PostService {
     const orderFn = sortDirection === 'asc' ? asc : desc;
     const offset = page * size;
 
-    const now = new Date();
+    const now = new Date().toISOString();
 
     // Build query based on tag filter
     let postsQuery;
@@ -238,7 +238,7 @@ export class PostService {
     const translatedIds = await this.getTranslatedOriginalIds(postIds);
 
     const totalElements = await this.countAdminPosts(locale);
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const content: PostListItem[] = postResults.map(post => {
       let displayState = post.state;
@@ -396,7 +396,7 @@ export class PostService {
       throw new ValidationError('Slug already exists');
     }
 
-    const now = new Date();
+    const now = new Date().toISOString();
     const createdAt = requestedCreatedAt ? new Date(requestedCreatedAt) : now;
 
     const [newPost] = await db
@@ -458,7 +458,7 @@ export class PostService {
       }
     }
 
-    const now = new Date();
+    const now = new Date().toISOString();
     const updateData: Partial<NewPost> = {
       title,
       content,
@@ -586,7 +586,7 @@ export class PostService {
   }
 
   private async countPublicPosts(tag: string | null, locale: string): Promise<number> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     if (tag) {
       const result = await db
@@ -629,7 +629,7 @@ export class PostService {
   }
 
   private async findPublishedBySlug(slug: string): Promise<Post | null> {
-    const now = new Date();
+    const now = new Date().toISOString();
     const result = await db
       .select()
       .from(posts)
@@ -640,7 +640,7 @@ export class PostService {
   }
 
   private async findPublishedBySlugAndLocale(slug: string, locale: string): Promise<Post | null> {
-    const now = new Date();
+    const now = new Date().toISOString();
     const result = await db
       .select()
       .from(posts)
@@ -658,7 +658,7 @@ export class PostService {
   }
 
   private async findPublishedById(id: number): Promise<Post | null> {
-    const now = new Date();
+    const now = new Date().toISOString();
     const result = await db
       .select()
       .from(posts)

@@ -16,7 +16,7 @@ export class SitemapService {
    * Get all published posts for sitemap
    */
   async getSitemapData(): Promise<SitemapEntry[]> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const result = await db
       .select({

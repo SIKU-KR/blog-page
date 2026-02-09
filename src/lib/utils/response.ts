@@ -28,14 +28,15 @@ export interface PaginatedResponse<T> {
 
 /**
  * Create a successful API response
+ * Uses JSON serialization to convert Date objects to ISO strings
  */
 export function successResponse<T>(data: T, status = 200): NextResponse<SuccessResponse<T>> {
   return NextResponse.json(
-    {
+    JSON.parse(JSON.stringify({
       success: true,
       data,
       error: null,
-    },
+    })),
     { status }
   );
 }

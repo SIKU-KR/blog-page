@@ -116,7 +116,7 @@ export class EmbeddingService {
         return [];
       }
 
-      const now = new Date();
+      const now = new Date().toISOString();
 
       // Use the search_similar_posts RPC function
       const result = await db.execute(sql`
