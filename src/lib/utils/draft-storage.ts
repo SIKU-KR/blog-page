@@ -5,9 +5,9 @@ const DRAFTS_KEY = 'velog-drafts';
 export interface DraftSnapshot {
     title: string;
     content: string;
-    tags: string[];
     summary: string;
     slug: string;
+    scheduledAt?: string | null;
 }
 
 export interface Draft extends DraftSnapshot {

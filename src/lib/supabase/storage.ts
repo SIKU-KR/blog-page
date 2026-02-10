@@ -13,6 +13,14 @@ export interface UploadResult {
   path: string;
 }
 
+export interface StorageImage {
+  name: string;
+  path: string;
+  url: string;
+  createdAt: string;
+  size: number;
+}
+
 export class StorageService {
   /**
    * Upload an image to Supabase Storage
@@ -55,6 +63,46 @@ export class StorageService {
       url: publicUrl,
       path: data.path,
     };
+  }
+
+  /**
+   * List all images from Supabase Storage
+   */
+  async listImages(): Promise<StorageImage[]> {
+    const supabase = createClient();
+
+    const { data, error } = await supabase.storage.from(BUCKET_NAME).list('posts', {
+      limit: 1000,
+      sortBy: { column: 'created_at', order: 'desc' },
+    });
+
+    if (error) {
+      throw new Error(`List images failed: ${error.message}`);
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    return data
+      .filter(file => {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        return ext && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+      })
+      .map(file => {
+        const path = `posts/${file.name}`;
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+
+        return {
+          name: file.name,
+          path,
+          url: publicUrl,
+          createdAt: file.created_at || '',
+          size: file.metadata?.size || 0,
+        };
+      });
   }
 
   /**

@@ -30,7 +30,6 @@ export function useDraftManagement(currentDraft: DraftSnapshot) {
         normalizedTitle ||
         snapshot.content.trim() ||
         snapshot.summary.trim() ||
-        snapshot.tags.length > 0 ||
         snapshot.slug.trim();
 
       if (!hasContent) return;

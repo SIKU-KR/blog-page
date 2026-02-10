@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { api } from '@/lib/api/index';
-import { UpdatePostRequest, Post } from '@/types';
+import { UpdatePostRequest } from '@/types';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { useAdminPost } from '@/features/posts/hooks';
+import { updatePostAction } from '@/lib/actions/posts';
 
-// Dynamic import for heavy markdown editor component
 const VelogWriteEditor = dynamic(() => import('@/components/admin/VelogWriteEditor'), {
   ssr: false,
   loading: () => (
@@ -21,35 +22,15 @@ const VelogWriteEditor = dynamic(() => import('@/components/admin/VelogWriteEdit
 });
 
 export default function EditPostPage() {
-  useAuthGuard(); // Protect this admin route
+  useAuthGuard();
   const router = useRouter();
   const params = useParams();
   const postId = params.id as string;
 
-  const [post, setPost] = useState<Post | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { post, isLoading, error } = useAdminPost(postId ? parseInt(postId, 10) : null);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  // 게시글 데이터 불러오기
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const postData = await api.posts.getAdminOne(parseInt(postId, 10));
-        setPost(postData);
-        setError(null);
-      } catch (err) {
-        console.error('데이터 로딩 오류:', err);
-        setError('게시글 정보를 불러오는 중 오류가 발생했습니다.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [postId]);
-
-  // 게시글 수정
   const handleSave = async (formData: {
     title: string;
     content: string;
@@ -58,7 +39,7 @@ export default function EditPostPage() {
     createdAt?: string;
   }) => {
     setIsSaving(true);
-    setError(null);
+    setSaveError(null);
 
     try {
       const postData: UpdatePostRequest = {
@@ -70,11 +51,11 @@ export default function EditPostPage() {
         createdAt: formData.createdAt,
       };
 
-      await api.posts.update(parseInt(postId, 10), postData);
+      await updatePostAction(parseInt(postId, 10), postData);
       router.push('/admin/posts');
     } catch (err) {
       console.error('게시글 수정 오류:', err);
-      setError('게시글을 수정하는 중 오류가 발생했습니다.');
+      setSaveError('게시글을 수정하는 중 오류가 발생했습니다.');
       throw err;
     } finally {
       setIsSaving(false);
@@ -89,6 +70,22 @@ export default function EditPostPage() {
     return (
       <div className="flex justify-center items-center min-h-screen">
         게시글 정보를 불러오는 중...
+      </div>
+    );
+  }
+
+  if (error || saveError) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{saveError || '게시글 정보를 불러오는 중 오류가 발생했습니다.'}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            다시 시도
+          </button>
+        </div>
       </div>
     );
   }

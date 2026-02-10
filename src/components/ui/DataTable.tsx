@@ -19,6 +19,9 @@ export interface DataTableProps<T extends { id?: string | number }> {
   data: T[];
   isLoading?: boolean;
   error?: string | null;
+  selectable?: boolean;
+  selectedIds?: (string | number)[];
+  onSelectionChange?: (selectedIds: (string | number)[]) => void;
 }
 
 /**
@@ -30,7 +33,31 @@ export default function DataTable<T extends { id?: string | number }>({
   data,
   isLoading,
   error,
+  selectable = false,
+  selectedIds = [],
+  onSelectionChange,
 }: DataTableProps<T>) {
+  const allIds = data.map(item => item.id).filter((id): id is string | number => id != null);
+  const allSelected = allIds.length > 0 && allIds.every(id => selectedIds.includes(id));
+
+  const handleSelectAll = () => {
+    if (!onSelectionChange) return;
+    if (allSelected) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(allIds);
+    }
+  };
+
+  const handleSelectOne = (id: string | number) => {
+    if (!onSelectionChange) return;
+    if (selectedIds.includes(id)) {
+      onSelectionChange(selectedIds.filter(sid => sid !== id));
+    } else {
+      onSelectionChange([...selectedIds, id]);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
@@ -55,11 +82,24 @@ export default function DataTable<T extends { id?: string | number }>({
     );
   }
 
+  const totalColumns = selectable ? columns.length + 1 : columns.length;
+
   return (
     <div className="overflow-x-auto bg-white shadow rounded-lg">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
+            {selectable && (
+              <th scope="col" className="px-4 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  aria-label="전체 선택"
+                />
+              </th>
+            )}
             {columns.map(column => (
               <th
                 key={String(column.key)}
@@ -75,27 +115,45 @@ export default function DataTable<T extends { id?: string | number }>({
           {data.length === 0 ? (
             <tr>
               <td
-                colSpan={columns.length}
+                colSpan={totalColumns}
                 className="px-6 py-4 whitespace-nowrap text-center text-gray-500"
               >
                 데이터가 없습니다.
               </td>
             </tr>
           ) : (
-            data.map((item, index) => (
-              <tr key={item.id ?? index}>
-                {columns.map(column => (
-                  <td
-                    key={`${item.id ?? index}-${String(column.key)}`}
-                    className="px-6 py-4 whitespace-nowrap"
-                  >
-                    {column.render
-                      ? column.render(item)
-                      : String((item as Record<string, unknown>)[column.key as string] ?? '')}
-                  </td>
-                ))}
-              </tr>
-            ))
+            data.map((item, index) => {
+              const itemId = item.id;
+              const isSelected = itemId != null && selectedIds.includes(itemId);
+
+              return (
+                <tr key={itemId ?? index} className={isSelected ? 'bg-blue-50' : ''}>
+                  {selectable && (
+                    <td className="px-4 py-4 w-10">
+                      {itemId != null && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleSelectOne(itemId)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          aria-label={`항목 ${itemId} 선택`}
+                        />
+                      )}
+                    </td>
+                  )}
+                  {columns.map(column => (
+                    <td
+                      key={`${itemId ?? index}-${String(column.key)}`}
+                      className="px-6 py-4 whitespace-nowrap"
+                    >
+                      {column.render
+                        ? column.render(item)
+                        : String((item as Record<string, unknown>)[column.key as string] ?? '')}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

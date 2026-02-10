@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api/index';
 import { PostSummary } from '@/types';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/hooks/useConfirm';
 import { ConfirmModal } from '@/components/ui/Modal';
-import { EmbeddingResult, BulkEmbeddingResult } from '@/lib/api/embedding';
+import { BulkEmbeddingResult } from '@/lib/api/embedding';
 
 export default function VectorsManagementPage() {
   useAuthGuard();
   const { addToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
+  const t = useTranslations('admin');
 
   const [posts, setPosts] = useState<PostSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,12 +36,12 @@ export default function VectorsManagementPage() {
       setTotalPosts(response.totalElements);
       setError(null);
     } catch (err) {
-      setError('게시글을 불러오는 중 오류가 발생했습니다.');
+      setError(t('loadPostError'));
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize]);
+  }, [page, pageSize, t]);
 
   useEffect(() => {
     fetchPosts();
@@ -50,13 +52,13 @@ export default function VectorsManagementPage() {
     try {
       const result = await api.embedding.embedPost(postId);
       if (result.success) {
-        addToast(`포스트 #${postId} 임베딩 생성 완료`, 'success');
+        addToast(t('embedSuccess', { postId }), 'success');
       } else {
-        addToast(`임베딩 생성 실패: ${result.error}`, 'error');
+        addToast(t('embedFailed', { error: result.error ?? 'Unknown error' }), 'error');
       }
     } catch (err) {
-      console.error('임베딩 생성 중 오류:', err);
-      addToast('임베딩 생성 중 오류가 발생했습니다.', 'error');
+      console.error('Embedding error:', err);
+      addToast(t('embedError'), 'error');
     } finally {
       setEmbeddingInProgress(null);
     }
@@ -64,11 +66,10 @@ export default function VectorsManagementPage() {
 
   const handleBulkEmbed = async () => {
     const confirmed = await confirm({
-      title: '전체 임베딩 생성',
-      message:
-        '모든 포스트의 임베딩을 생성합니다. 이 작업은 시간이 걸릴 수 있습니다. 계속하시겠습니까?',
-      confirmText: '생성',
-      cancelText: '취소',
+      title: t('bulkEmbedConfirmTitle'),
+      message: t('bulkEmbedConfirmMessage'),
+      confirmText: t('generate'),
+      cancelText: t('cancel'),
     });
 
     if (!confirmed) return;
@@ -78,10 +79,17 @@ export default function VectorsManagementPage() {
     try {
       const result = await api.embedding.embedAllPosts();
       setBulkResult(result);
-      addToast(`총 ${result.total}개 중 ${result.succeeded}개 성공, ${result.failed}개 실패`, 'success');
+      addToast(
+        t('bulkEmbedSuccess', {
+          total: result.total,
+          succeeded: result.succeeded,
+          failed: result.failed,
+        }),
+        'success'
+      );
     } catch (err) {
-      console.error('대량 임베딩 생성 중 오류:', err);
-      addToast('대량 임베딩 생성 중 오류가 발생했습니다.', 'error');
+      console.error('Bulk embedding error:', err);
+      addToast(t('bulkEmbedError'), 'error');
     } finally {
       setBulkEmbeddingInProgress(false);
     }
@@ -90,7 +98,7 @@ export default function VectorsManagementPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">벡터 임베딩 관리</h1>
+        <h1 className="text-2xl font-bold">{t('vectorManagement')}</h1>
         <button
           onClick={handleBulkEmbed}
           disabled={bulkEmbeddingInProgress}
@@ -122,53 +130,49 @@ export default function VectorsManagementPage() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              처리 중...
+              {t('processing')}
             </span>
           ) : (
-            '전체 임베딩 생성'
+            t('embedAll')
           )}
         </button>
       </div>
 
       {/* 설명 섹션 */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h2 className="text-lg font-semibold text-blue-800 mb-2">벡터 임베딩이란?</h2>
-        <p className="text-blue-700 text-sm">
-          벡터 임베딩은 포스트의 내용을 AI가 이해할 수 있는 숫자 벡터로 변환합니다. 이를 통해
-          유사한 포스트를 자동으로 추천할 수 있습니다. 포스트를 생성하거나 수정하면 자동으로
-          임베딩이 생성되지만, 수동으로 재생성할 수도 있습니다.
-        </p>
+        <h2 className="text-lg font-semibold text-blue-800 mb-2">{t('vectorExplanationTitle')}</h2>
+        <p className="text-blue-700 text-sm">{t('vectorExplanation')}</p>
       </div>
 
       {/* 대량 임베딩 결과 */}
       {bulkResult && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">대량 임베딩 결과</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">{t('bulkEmbeddingResult')}</h2>
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="bg-white rounded-lg p-3 border">
               <div className="text-2xl font-bold text-gray-900">{bulkResult.total}</div>
-              <div className="text-sm text-gray-500">전체</div>
+              <div className="text-sm text-gray-500">{t('total')}</div>
             </div>
             <div className="bg-white rounded-lg p-3 border border-green-200">
               <div className="text-2xl font-bold text-green-600">{bulkResult.succeeded}</div>
-              <div className="text-sm text-gray-500">성공</div>
+              <div className="text-sm text-gray-500">{t('success')}</div>
             </div>
             <div className="bg-white rounded-lg p-3 border border-red-200">
               <div className="text-2xl font-bold text-red-600">{bulkResult.failed}</div>
-              <div className="text-sm text-gray-500">실패</div>
+              <div className="text-sm text-gray-500">{t('failure')}</div>
             </div>
           </div>
 
           {/* 실패한 항목 목록 */}
           {bulkResult.failed > 0 && (
             <div className="mt-4">
-              <h3 className="text-sm font-semibold text-red-700 mb-2">실패한 항목:</h3>
+              <h3 className="text-sm font-semibold text-red-700 mb-2">{t('failedItems')}</h3>
               <div className="max-h-40 overflow-y-auto">
                 {bulkResult.results
                   .filter(r => !r.success)
                   .map(r => (
                     <div key={r.postId} className="text-sm text-red-600 py-1">
-                      포스트 #{r.postId}: {r.error}
+                      {t('embedFailed', { error: `#${r.postId}: ${r.error}` })}
                     </div>
                   ))}
               </div>
@@ -216,16 +220,16 @@ export default function VectorsManagementPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
+                    {t('id')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    제목
+                    {t('postTitle')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
+                    {t('state')}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업
+                    {t('task')}
                   </th>
                 </tr>
               </thead>
@@ -243,7 +247,7 @@ export default function VectorsManagementPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        발행됨
+                        {t('published')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -278,10 +282,10 @@ export default function VectorsManagementPage() {
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                               />
                             </svg>
-                            처리 중
+                            {t('processing')}
                           </span>
                         ) : (
-                          '임베딩 재생성'
+                          t('regenerateEmbedding')
                         )}
                       </button>
                     </td>
@@ -293,7 +297,9 @@ export default function VectorsManagementPage() {
 
           {/* 페이지네이션 */}
           <div className="mt-4 flex justify-between items-center">
-            <div className="text-sm text-gray-600">총 {totalPosts}개의 게시글</div>
+            <div className="text-sm text-gray-600">
+              {t('totalPosts', { count: totalPosts })}
+            </div>
             <div className="flex space-x-1">
               <button
                 disabled={page === 0}
@@ -302,7 +308,7 @@ export default function VectorsManagementPage() {
                   page === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-200 hover:bg-gray-300'
                 }`}
               >
-                이전
+                {t('prev')}
               </button>
               <span className="px-3 py-1">
                 {page + 1} / {Math.max(1, Math.ceil(totalPosts / pageSize))}
@@ -316,7 +322,7 @@ export default function VectorsManagementPage() {
                     : 'bg-gray-200 hover:bg-gray-300'
                 }`}
               >
-                다음
+                {t('next')}
               </button>
             </div>
           </div>

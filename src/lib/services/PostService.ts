@@ -3,7 +3,7 @@
  * Business logic for post management with Drizzle ORM
  */
 import { db, posts, type Post, type NewPost } from '@/lib/db';
-import { eq, and, desc, asc, sql, ne } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, ne, ilike } from 'drizzle-orm';
 import { ValidationError, NotFoundError, validatePagination, validateSorting } from '@/lib/utils/validation';
 import type { PaginatedResponse } from '@/lib/utils/response';
 
@@ -103,11 +103,30 @@ export class PostService {
     page?: number;
     size?: number;
     sort?: string;
+    search?: string;
+    state?: string;
   }): Promise<PaginatedResponse<PostListItem>> {
-    const { locale, page = 0, size = 10, sort = 'createdAt,desc' } = options;
+    const { locale, page = 0, size = 10, sort = 'createdAt,desc', search, state } = options;
     const { offset, orderFn, dbField } = this.validateAndGetParams({ page, size, sort });
 
     const conditions = locale ? [eq(posts.locale, locale)] : [];
+
+    if (search) {
+      conditions.push(ilike(posts.title, `%${search}%`));
+    }
+
+    if (state) {
+      const now = new Date();
+      if (state === 'draft') {
+        conditions.push(eq(posts.state, 'draft'));
+      } else if (state === 'published') {
+        conditions.push(eq(posts.state, 'published'));
+        conditions.push(sql`${posts.createdAt} <= ${now.toISOString()}`);
+      } else if (state === 'scheduled') {
+        conditions.push(eq(posts.state, 'published'));
+        conditions.push(sql`${posts.createdAt} > ${now.toISOString()}`);
+      }
+    }
 
     const postResults = await db
       .select({
@@ -129,7 +148,7 @@ export class PostService {
 
     const postIds = postResults.map(p => p.id);
     const translatedIds = await this.getTranslatedOriginalIds(postIds);
-    const totalElements = await this.countAdminPosts(locale);
+    const totalElements = await this.countAdminPosts(locale, search, state);
     const now = new Date();
 
     const content: PostListItem[] = postResults.map(post => {
@@ -420,16 +439,30 @@ export class PostService {
     return result[0]?.count || 0;
   }
 
-  private async countAdminPosts(locale?: string): Promise<number> {
-    if (locale) {
-      const result = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(posts)
-        .where(eq(posts.locale, locale));
-      return result[0]?.count || 0;
+  private async countAdminPosts(locale?: string, search?: string, state?: string): Promise<number> {
+    const conditions = locale ? [eq(posts.locale, locale)] : [];
+
+    if (search) {
+      conditions.push(ilike(posts.title, `%${search}%`));
     }
 
-    const result = await db.select({ count: sql<number>`count(*)` }).from(posts);
+    if (state) {
+      const now = new Date();
+      if (state === 'draft') {
+        conditions.push(eq(posts.state, 'draft'));
+      } else if (state === 'published') {
+        conditions.push(eq(posts.state, 'published'));
+        conditions.push(sql`${posts.createdAt} <= ${now.toISOString()}`);
+      } else if (state === 'scheduled') {
+        conditions.push(eq(posts.state, 'published'));
+        conditions.push(sql`${posts.createdAt} > ${now.toISOString()}`);
+      }
+    }
+
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
     return result[0]?.count || 0;
   }
 

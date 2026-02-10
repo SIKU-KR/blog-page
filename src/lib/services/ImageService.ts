@@ -2,7 +2,7 @@
  * Image Service
  * Image upload and management using Supabase Storage
  */
-import { storageService, type UploadResult } from '@/lib/supabase/storage';
+import { storageService, type UploadResult, type StorageImage } from '@/lib/supabase/storage';
 
 export class ImageService {
   /**
@@ -10,6 +10,13 @@ export class ImageService {
    */
   async uploadImage(file: File, filename?: string): Promise<UploadResult> {
     return storageService.uploadImage(file, filename);
+  }
+
+  /**
+   * List all images
+   */
+  async listImages(): Promise<StorageImage[]> {
+    return storageService.listImages();
   }
 
   /**

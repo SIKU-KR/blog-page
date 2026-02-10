@@ -1,16 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { api } from '@/lib/api/index';
 import { CreatePostRequest } from '@/types';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { useAdminPost } from '@/features/posts/hooks';
+import { createPostAction } from '@/lib/actions/posts';
 
-// Dynamic import for heavy markdown editor component
-// Reduces initial bundle size by ~100KB
 const VelogWriteEditor = dynamic(() => import('@/components/admin/VelogWriteEditor'), {
-  ssr: false, // Editor requires browser APIs
+  ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-screen">
       <div className="text-center">
@@ -22,12 +21,18 @@ const VelogWriteEditor = dynamic(() => import('@/components/admin/VelogWriteEdit
 });
 
 export default function WritePostPage() {
-  useAuthGuard(); // Protect this admin route
+  useAuthGuard();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const cloneId = searchParams.get('clone');
+
+  const { post: clonePost, isLoading: cloneLoading } = useAdminPost(
+    cloneId ? parseInt(cloneId, 10) : null
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 게시글 저장
   const handleSave = async (formData: {
     title: string;
     content: string;
@@ -48,7 +53,7 @@ export default function WritePostPage() {
         createdAt: formData.createdAt,
       };
 
-      await api.posts.create(postData);
+      await createPostAction(postData);
       router.push('/admin/posts');
     } catch (err) {
       console.error('게시글 저장 오류:', err);
@@ -79,12 +84,32 @@ export default function WritePostPage() {
     );
   }
 
-  return (
-    <VelogWriteEditor
-      initialValues={{
+  if (cloneId && cloneLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-4 text-gray-600">복제할 게시글 로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const initialValues = clonePost
+    ? {
+        title: `${clonePost.title} (복사본)`,
+        content: clonePost.content,
+        summary: clonePost.summary,
+        slug: '',
+      }
+    : {
         title: '',
         content: '',
-      }}
+      };
+
+  return (
+    <VelogWriteEditor
+      initialValues={initialValues}
       isSubmitting={isLoading}
       onSave={handleSave}
       onCancel={handleCancel}

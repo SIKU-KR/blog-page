@@ -51,10 +51,12 @@ export class PostsService {
     page: number = 0,
     size: number = 10,
     sort: string = 'createdAt,desc',
-    locale?: string
+    locale?: string,
+    search?: string,
+    state?: string
   ): Promise<AdminPostsResponse> {
     try {
-      logger.debug('관리자 게시물 목록 요청', { page, size, sort, locale });
+      logger.debug('관리자 게시물 목록 요청', { page, size, sort, locale, search, state });
       const response = await this.client.request<AdminPostsResponse>({
         url: API_ENDPOINTS.ADMIN_POSTS,
         method: 'GET',
@@ -63,6 +65,8 @@ export class PostsService {
           size,
           sort,
           ...(locale && { locale }),
+          ...(search && { search }),
+          ...(state && { state }),
         },
       });
       logger.debug('관리자 게시물 목록 응답', response);
