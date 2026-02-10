@@ -2,24 +2,20 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useTranslations, useLocale } from 'next-intl';
 import { PostSummary } from '@/types';
 import Card from '@/components/ui/Card';
-import { dateUtils, DateLocale } from '@/lib/utils/date';
+import { dateUtils } from '@/lib/utils/date';
 
 interface PostItemProps {
   post: PostSummary;
 }
 
 export default function PostItem({ post }: PostItemProps) {
-  const t = useTranslations('post');
-  const locale = useLocale() as DateLocale;
-
   return (
     <Card className="last:mb-0" hasShadow={false} hasBorder={false} isPadded={false} style={{ marginBottom: '64px' }}>
       <article className="pb-4">
         <div className="mb-2">
-          <p className="text-sm text-gray-500">{dateUtils.formatByLocale(post.createdAt, locale)}</p>
+          <p className="text-sm text-gray-500">{dateUtils.formatByLocale(post.createdAt, 'ko')}</p>
         </div>
 
         <Link href={`/${post.slug}`}>
@@ -35,7 +31,7 @@ export default function PostItem({ post }: PostItemProps) {
             href={`/${post.slug}`}
             className="text-blue-600 hover:text-blue-800 transition-colors"
           >
-            {t('readMore')}
+            더 읽기
           </Link>
         </div>
       </article>

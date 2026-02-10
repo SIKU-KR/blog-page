@@ -2,7 +2,6 @@ import { PostListResponse } from '@/types';
 import { Metadata } from 'next';
 import { homeMetadata } from '@/lib/metadata';
 import HomePage from '@/components/pages/home';
-import { setRequestLocale } from 'next-intl/server';
 import { postService } from '@/lib/services';
 
 type SearchParams = {
@@ -10,7 +9,6 @@ type SearchParams = {
 };
 
 type Props = {
-  params: Promise<{ locale: string }>;
   searchParams: Promise<SearchParams>;
 };
 
@@ -18,12 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return homeMetadata;
 }
 
-export default async function Home({ params, searchParams }: Props) {
-  const { locale } = await params;
+export default async function Home({ searchParams }: Props) {
   const { page } = await searchParams;
-
-  // Enable static rendering
-  setRequestLocale(locale);
 
   const currentPage = typeof page === 'string' ? parseInt(page, 10) : 1;
 
@@ -31,7 +25,7 @@ export default async function Home({ params, searchParams }: Props) {
 
   try {
     const postsResult = await postService.getPosts({
-      locale,
+      locale: 'ko',
       page: currentPage - 1,
       size: 5,
       sort: 'createdAt,desc',

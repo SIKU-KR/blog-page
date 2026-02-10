@@ -1,17 +1,16 @@
 import useSWRInfinite from 'swr/infinite';
 import { useSearchParams } from 'next/navigation';
-import { useLocale } from 'next-intl';
 import { useMemo } from 'react';
 import { PostListResponse } from '@/types';
 import { api } from '@/lib/api';
 
 export function useInfinitePosts(initialData?: PostListResponse) {
-    const locale = useLocale();
     const searchParams = useSearchParams();
 
     // Keep sort param if it exists, default to createdAt,desc
     const sort = searchParams.get('sort') || 'createdAt,desc';
     const pageSize = 5;
+    const locale = 'ko';
 
     const getKey = (pageIndex: number, previousPageData: PostListResponse | null) => {
         // If we have previous data and it's empty or less than page size, we've reached the end

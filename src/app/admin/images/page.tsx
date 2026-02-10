@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import useSWR from 'swr';
-import { useTranslations } from 'next-intl';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -28,7 +27,6 @@ const formatFileSize = (bytes: number): string => {
 
 export default function ImageGalleryPage() {
   useAuthGuard();
-  const t = useTranslations('admin');
   const { addToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [deletingPath, setDeletingPath] = useState<string | null>(null);
@@ -46,22 +44,22 @@ export default function ImageGalleryPage() {
       navigator.clipboard
         .writeText(markdown)
         .then(() => {
-          addToast(t('markdownCopied'), 'success');
+          addToast('마크다운 URL이 복사되었습니다.', 'success');
         })
         .catch(() => {
-          addToast(t('copyFailed'), 'error');
+          addToast('복사에 실패했습니다.', 'error');
         });
     },
-    [addToast, t]
+    [addToast]
   );
 
   const handleDelete = useCallback(
     async (image: StorageImage) => {
       const confirmed = await confirm({
-        title: t('deleteImage'),
-        message: t('deleteImageConfirm', { name: image.name }),
-        confirmText: t('delete'),
-        cancelText: t('cancel'),
+        title: '이미지 삭제',
+        message: `"${image.name}" 이미지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+        confirmText: '삭제',
+        cancelText: '취소',
       });
 
       if (!confirmed) return;
@@ -70,33 +68,33 @@ export default function ImageGalleryPage() {
       try {
         const result = await deleteImageAction(image.path);
         if (result.success) {
-          addToast(t('imageDeleted'), 'success');
+          addToast('이미지가 삭제되었습니다.', 'success');
           mutate();
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : t('imageDeleteError');
+        const message = err instanceof Error ? err.message : '이미지 삭제 중 오류가 발생했습니다.';
         addToast(message, 'error');
       } finally {
         setDeletingPath(null);
       }
     },
-    [confirm, addToast, mutate, t]
+    [confirm, addToast, mutate]
   );
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{t('imageManagement')}</h1>
+        <h1 className="text-2xl font-bold">이미지 관리</h1>
         <div className="text-sm text-gray-500">
-          {images && t('totalImages', { count: images.length })}
+          {images && `총 ${images.length}개의 이미지`}
         </div>
       </div>
 
       {/* 설명 섹션 */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h2 className="text-lg font-semibold text-blue-800 mb-2">{t('imageGallery')}</h2>
+        <h2 className="text-lg font-semibold text-blue-800 mb-2">이미지 갤러리</h2>
         <p className="text-blue-700 text-sm">
-          {t('imageGalleryDescription')}
+          업로드된 이미지를 관리합니다. 이미지를 클릭하면 마크다운 URL이 클립보드에 복사됩니다. 복사된 URL을 에디터에 붙여넣어 사용할 수 있습니다.
         </p>
       </div>
 
@@ -129,7 +127,7 @@ export default function ImageGalleryPage() {
       {/* 에러 상태 */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {t('imageLoadError')}
+          이미지를 불러오는 중 오류가 발생했습니다.
         </div>
       )}
 
@@ -150,7 +148,7 @@ export default function ImageGalleryPage() {
               d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
             />
           </svg>
-          <p className="mt-4 text-gray-500">{t('noImages')}</p>
+          <p className="mt-4 text-gray-500">업로드된 이미지가 없습니다.</p>
         </div>
       )}
 
@@ -167,7 +165,7 @@ export default function ImageGalleryPage() {
                 type="button"
                 onClick={() => handleCopyMarkdown(image)}
                 className="block w-full aspect-square relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-t-lg"
-                aria-label={t('copyMarkdownUrl', { name: image.name })}
+                aria-label={`${image.name} 마크다운 URL 복사`}
                 tabIndex={0}
               >
                 <Image
@@ -181,7 +179,7 @@ export default function ImageGalleryPage() {
                 {/* 호버 오버레이 */}
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
                   <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    {t('copyUrl')}
+                    URL 복사
                   </span>
                 </div>
               </button>
@@ -204,9 +202,9 @@ export default function ImageGalleryPage() {
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         : 'text-red-500 hover:text-red-700 hover:bg-red-50'
                     }`}
-                    aria-label={t('deleteImageLabel', { name: image.name })}
+                    aria-label={`${image.name} 삭제`}
                   >
-                    {deletingPath === image.path ? t('deleting') : t('delete')}
+                    {deletingPath === image.path ? '삭제 중...' : '삭제'}
                   </button>
                 </div>
               </div>

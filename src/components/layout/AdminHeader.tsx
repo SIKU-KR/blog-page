@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { useAuth } from '@/features/auth';
 import { useState } from 'react';
 
@@ -11,7 +10,6 @@ export default function AdminHeader() {
   const pathname = usePathname();
   const { user, isLoggedIn } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const t = useTranslations('admin');
 
   const handleLogout = () => {
     document.cookie = 'JSESSIONID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -20,9 +18,9 @@ export default function AdminHeader() {
   };
 
   const menuItems = [
-    { label: t('postsManagement'), path: '/admin/posts' },
-    { label: t('vectors'), path: '/admin/vectors' },
-    { label: t('images'), path: '/admin/images' },
+    { label: '게시글 관리', path: '/admin/posts' },
+    { label: '벡터 관리', path: '/admin/vectors' },
+    { label: '이미지', path: '/admin/images' },
   ];
 
   return (
@@ -31,7 +29,7 @@ export default function AdminHeader() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/admin" className="text-xl font-bold text-gray-900 hover:text-gray-700">
-              {t('blogAdmin')}
+              블로그 관리자
             </Link>
           </div>
 
@@ -53,20 +51,20 @@ export default function AdminHeader() {
 
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn && (
-              <span className="text-sm text-gray-700">{user?.username || t('dashboard')}</span>
+              <span className="text-sm text-gray-700">{user?.username || '대시보드'}</span>
             )}
             <Link
               href="/"
               className="text-sm text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-50"
               target="_blank"
             >
-              {t('visitSite')}
+              사이트 방문
             </Link>
             <button
               onClick={handleLogout}
               className="text-sm text-red-600 hover:text-red-700 px-3 py-2 rounded-md hover:bg-red-50"
             >
-              {t('logout')}
+              로그아웃
             </button>
           </div>
 
@@ -117,7 +115,7 @@ export default function AdminHeader() {
             <div className="border-t border-gray-200 pt-4 pb-3">
               <div className="flex items-center px-3 mb-3">
                 {isLoggedIn && (
-                  <span className="text-sm text-gray-700">{user?.username || t('dashboard')}</span>
+                  <span className="text-sm text-gray-700">{user?.username || '대시보드'}</span>
                 )}
               </div>
               <Link
@@ -126,7 +124,7 @@ export default function AdminHeader() {
                 target="_blank"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                {t('visitSite')}
+                사이트 방문
               </Link>
               <button
                 onClick={() => {
@@ -135,7 +133,7 @@ export default function AdminHeader() {
                 }}
                 className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
               >
-                {t('logout')}
+                로그아웃
               </button>
             </div>
           </div>

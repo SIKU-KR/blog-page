@@ -2,7 +2,6 @@
 
 import { useInfinitePosts } from '@/features/posts/hooks';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import Container from '../../ui/Container';
 import HeroSection from '../../sections/HeroSection';
@@ -18,8 +17,6 @@ interface HomePageProps {
 
 const HomePage = ({ initialPosts }: HomePageProps) => {
   const router = useRouter();
-  const t = useTranslations('hero');
-  const tPost = useTranslations('post');
 
   // SWR hook for infinite scroll
   const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore } = useInfinitePosts(initialPosts);
@@ -39,10 +36,10 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
   return (
     <Container size="md">
       <HeroSection
-        title={t('title')}
-        subtitle={t('subtitle')}
+        title="안녕하세요, SIKU(시쿠)입니다."
+        subtitle="건국대학교 컴퓨터공학부 4학년 재학중이며,\n다양한 경험과 배움을 제것으로 만들고자 포스팅에 기록하고 있습니다."
         imageSrc="/profile.jpg"
-        profileAlt={t('profileAlt')}
+        profileAlt="프로필 이미지"
       />
 
       <Divider variant="border" />
@@ -54,8 +51,8 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
           hasMore={!isReachingEnd}
           isLoadingMore={isLoadingMore}
           translations={{
-            noPosts: tPost('noPosts'),
-            loadError: tPost('loadError'),
+            noPosts: '게시글이 없습니다.',
+            loadError: '블로그 게시물을 불러오는 중 오류가 발생했습니다.',
           }}
         />
       </div>

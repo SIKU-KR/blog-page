@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import DataTable from '@/components/ui/DataTable';
 import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
 import { AdminPostSummary } from '@/types';
@@ -23,7 +22,6 @@ export default function PostsManagementPage() {
   const router = useRouter();
   const { addToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
-  const t = useTranslations('admin');
 
   const [activeTab, setActiveTab] = useState<LocaleTab>('ko');
   const [page, setPage] = useState(0);
@@ -68,21 +66,21 @@ export default function PostsManagementPage() {
 
   const handleDelete = async (id: number) => {
     const confirmed = await confirm({
-      title: t('deletePostTitle'),
-      message: t('confirmDelete'),
-      confirmText: t('delete'),
-      cancelText: t('cancel'),
+      title: '게시글 삭제',
+      message: '이 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+      confirmText: '삭제',
+      cancelText: '취소',
     });
 
     if (!confirmed) return;
 
     try {
       await deletePostAction(id);
-      addToast(t('deleteSuccess'), 'success');
+      addToast('게시글이 삭제되었습니다.', 'success');
       mutate();
     } catch (err) {
       console.error('게시글 삭제 중 오류 발생:', err);
-      addToast(t('deleteError'), 'error');
+      addToast('게시글을 삭제하는 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -90,10 +88,10 @@ export default function PostsManagementPage() {
     if (selectedIds.length === 0) return;
 
     const confirmed = await confirm({
-      title: t('bulkDeleteTitle'),
-      message: t('confirmBulkDelete', { count: selectedIds.length }),
-      confirmText: t('delete'),
-      cancelText: t('cancel'),
+      title: '벌크 삭제',
+      message: `선택한 ${selectedIds.length}개의 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+      confirmText: '삭제',
+      cancelText: '취소',
     });
 
     if (!confirmed) return;
@@ -102,12 +100,12 @@ export default function PostsManagementPage() {
       for (const id of selectedIds) {
         await deletePostAction(Number(id));
       }
-      addToast(t('bulkDeleteSuccess', { count: selectedIds.length }), 'success');
+      addToast(`${selectedIds.length}개의 게시글이 삭제되었습니다.`, 'success');
       setSelectedIds([]);
       mutate();
     } catch (err) {
       console.error('벌크 삭제 중 오류 발생:', err);
-      addToast(t('bulkDeleteError'), 'error');
+      addToast('일부 게시글 삭제에 실패했습니다.', 'error');
       mutate();
     }
   };
@@ -117,13 +115,13 @@ export default function PostsManagementPage() {
     try {
       const result = await translatePostAction(id);
       if (result.success) {
-        addToast(t('translateSuccess'), 'success');
+        addToast('번역이 생성되었습니다. English 탭에서 확인하세요.', 'success');
         setActiveTab('en');
         setPage(0);
       }
     } catch (err) {
       console.error('번역 생성 중 오류 발생:', err);
-      addToast(t('translateError'), 'error');
+      addToast('번역 생성에 실패했습니다', 'error');
     } finally {
       setTranslatingId(null);
     }
@@ -148,29 +146,29 @@ export default function PostsManagementPage() {
   };
 
   const stateLabels: Record<string, string> = {
-    published: t('published'),
-    scheduled: t('scheduled'),
-    draft: t('draft'),
+    published: '발행됨',
+    scheduled: '예약됨',
+    draft: '임시저장',
   };
 
   const stateFilterOptions: { value: StateFilter; label: string }[] = [
-    { value: '', label: t('all') },
-    { value: 'published', label: t('published') },
-    { value: 'scheduled', label: t('scheduled') },
-    { value: 'draft', label: t('draft') },
+    { value: '', label: '전체' },
+    { value: 'published', label: '발행됨' },
+    { value: 'scheduled', label: '예약됨' },
+    { value: 'draft', label: '임시저장' },
   ];
 
   const columns = [
     {
       key: 'id',
-      label: t('id'),
+      label: 'ID',
       render: (post: AdminPostSummary) => (
         <div className="font-mono text-sm text-gray-600">{post.id}</div>
       ),
     },
     {
       key: 'state',
-      label: t('state'),
+      label: '상태',
       render: (post: AdminPostSummary) => (
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${stateStyles[post.state] || stateStyles.draft}`}
@@ -181,7 +179,7 @@ export default function PostsManagementPage() {
     },
     {
       key: 'title',
-      label: t('title'),
+      label: 'TITLE',
       render: (post: AdminPostSummary) => (
         <div className="truncate font-medium max-w-md" title={post.title}>
           {post.title}
@@ -190,51 +188,51 @@ export default function PostsManagementPage() {
     },
     {
       key: 'createdAt',
-      label: t('publishDate'),
+      label: '발행일',
       render: (post: AdminPostSummary) => (
         <span className="text-sm text-gray-600">{dateUtils.formatShort(post.createdAt)}</span>
       ),
     },
     {
       key: 'actions',
-      label: t('actions'),
+      label: '관리',
       render: (post: AdminPostSummary) => (
         <div className="flex space-x-2">
           <button
             onClick={() => handlePreview(post.id)}
             className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
-            title={t('preview')}
+            title="미리보기"
           >
-            {t('preview')}
+            미리보기
           </button>
           <button
             onClick={() => handleEdit(post.id)}
             className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            {t('edit')}
+            수정
           </button>
           <button
             onClick={() => handleClone(post.id)}
             className="px-3 py-1 bg-teal-500 text-white rounded hover:bg-teal-600"
-            title={t('clone')}
+            title="복제"
           >
-            {t('clone')}
+            복제
           </button>
           {activeTab === 'ko' && (
             <button
               onClick={() => handleTranslate(post.id)}
               disabled={translatingId === post.id || post.hasTranslation}
               className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={post.hasTranslation ? t('alreadyTranslated') : t('translateToEnglish')}
+              title={post.hasTranslation ? '이미 번역됨' : '영어로 번역'}
             >
-              {translatingId === post.id ? t('translating') : post.hasTranslation ? t('translated') : t('translate')}
+              {translatingId === post.id ? '번역 중...' : post.hasTranslation ? '번역됨' : '번역 생성'}
             </button>
           )}
           <button
             onClick={() => handleDelete(post.id)}
             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
           >
-            {t('delete')}
+            삭제
           </button>
         </div>
       ),
@@ -244,12 +242,12 @@ export default function PostsManagementPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{t('postsManagement')}</h1>
+        <h1 className="text-2xl font-bold">게시글 관리</h1>
         <button
           onClick={handleNewPost}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
         >
-          {t('newPost')}
+          새 게시글
         </button>
       </div>
 
@@ -264,7 +262,7 @@ export default function PostsManagementPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            {t('korean')}
+            한국어
           </button>
           <button
             onClick={() => handleTabChange('en')}
@@ -274,7 +272,7 @@ export default function PostsManagementPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            {t('english')}
+            English
           </button>
         </nav>
       </div>
@@ -286,7 +284,7 @@ export default function PostsManagementPage() {
             type="text"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder={t('searchPlaceholder')}
+            placeholder="제목으로 검색..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -310,18 +308,18 @@ export default function PostsManagementPage() {
       {/* Bulk Action Bar */}
       {selectedIds.length > 0 && (
         <div className="mb-4 flex items-center gap-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <span className="text-sm text-blue-700 font-medium">{t('selectedCount', { count: selectedIds.length })}</span>
+          <span className="text-sm text-blue-700 font-medium">{selectedIds.length}개 선택됨</span>
           <button
             onClick={handleBulkDelete}
             className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
           >
-            {t('bulkDelete')}
+            선택 삭제
           </button>
           <button
             onClick={() => setSelectedIds([])}
             className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
           >
-            {t('clearSelection')}
+            선택 해제
           </button>
         </div>
       )}
@@ -338,7 +336,7 @@ export default function PostsManagementPage() {
 
       {!isLoading && !error && (
         <div className="mt-4 flex justify-between items-center">
-          <div>{t('totalPosts', { count: totalPosts })}</div>
+          <div>총 {totalPosts}개의 게시글</div>
           <div className="flex space-x-1">
             <button
               disabled={page === 0}
@@ -347,7 +345,7 @@ export default function PostsManagementPage() {
                 page === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-200 hover:bg-gray-300'
               }`}
             >
-              {t('prev')}
+              이전
             </button>
             <span className="px-3 py-1">
               {page + 1} / {Math.max(1, Math.ceil(totalPosts / pageSize))}
@@ -361,7 +359,7 @@ export default function PostsManagementPage() {
                   : 'bg-gray-200 hover:bg-gray-300'
               }`}
             >
-              {t('next')}
+              다음
             </button>
           </div>
         </div>
@@ -372,7 +370,7 @@ export default function PostsManagementPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold">{t('preview')}</h3>
+              <h3 className="text-lg font-bold">미리보기</h3>
               <button
                 onClick={() => setPreviewPostId(null)}
                 className="text-gray-500 hover:text-gray-700"
@@ -384,7 +382,7 @@ export default function PostsManagementPage() {
             </div>
             <div className="px-6 py-4">
               {previewLoading ? (
-                <div className="text-center py-8 text-gray-500">{t('loading')}</div>
+                <div className="text-center py-8 text-gray-500">로딩 중...</div>
               ) : previewPost ? (
                 <div className="space-y-4">
                   <h1 className="text-2xl font-bold">{previewPost.title}</h1>
@@ -396,7 +394,7 @@ export default function PostsManagementPage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">{t('postNotFound')}</div>
+                <div className="text-center py-8 text-gray-500">게시글을 찾을 수 없습니다.</div>
               )}
             </div>
           </div>

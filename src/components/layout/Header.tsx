@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Container from '../ui/Container';
 import SocialLink from '../ui/SocialLink';
-import { HeaderLanguageSwitcher } from '../ui/LanguageSwitcher';
 
 function MenuIcon({ className = 'w-6 h-6' }: { className?: string }) {
   return (
@@ -46,9 +45,8 @@ export default function Header() {
             <span className="font-extrabold">Siku</span>.class
           </Link>
 
-          {/* 데스크톱: 언어 전환 & 소셜 아이콘 */}
+          {/* 데스크톱: 소셜 아이콘 */}
           <div className="hidden md:flex items-center space-x-4">
-            <HeaderLanguageSwitcher />
             <SocialLink type="github" href="https://github.com/SIKU-KR" label="GitHub" />
             <SocialLink type="linkedin" href="https://linkedin.com/in/siku-kr" label="LinkedIn" />
             <SocialLink
@@ -73,15 +71,7 @@ export default function Header() {
         {/* 모바일: 드롭다운 메뉴 */}
         {isMenuOpen && (
           <div className="md:hidden absolute left-0 right-0 top-full mt-2 mx-4 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
-            <div className="p-4 space-y-4">
-              {/* 언어 전환 */}
-              <div className="pb-3 border-b border-gray-100">
-                <span className="text-xs text-gray-500 uppercase tracking-wide block mb-2">
-                  Language
-                </span>
-                <HeaderLanguageSwitcher className="w-full justify-center" />
-              </div>
-
+            <div className="p-4">
               {/* 소셜 링크 */}
               <div>
                 <span className="text-xs text-gray-500 uppercase tracking-wide block mb-3">

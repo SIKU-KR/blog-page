@@ -10,27 +10,25 @@ import Link from 'next/link';
 import { RelatedPosts, ShareButton } from '@/features/posts/components';
 import { getPostMetadata } from '@/lib/metadata';
 import RedirectHandler from '@/components/RedirectHandler';
-import { setRequestLocale } from 'next-intl/server';
-import { getTranslations } from 'next-intl/server';
 import { postService, embeddingService } from '@/lib/services';
 
 interface PostDetailPageProps {
-  params: Promise<{ locale: string; slug: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ locale: string; slug: string }>;
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug, locale } = await params;
+  const { slug } = await params;
 
   try {
-    const result = await postService.getPostBySlug(slug, locale);
+    const result = await postService.getPostBySlug(slug, 'ko');
 
     if (result.redirect) {
       return {
-        title: locale === 'en' ? 'Redirecting...' : '리다이렉트 중...',
+        title: '리다이렉트 중...',
       };
     }
 
@@ -51,27 +49,23 @@ export async function generateMetadata({
   } catch (error) {
     console.error('Metadata generation error:', error);
     return {
-      title: locale === 'en' ? 'Post not found' : '게시물을 찾을 수 없음',
-      description: locale === 'en' ? 'The requested post could not be found.' : '요청하신 게시물을 찾을 수 없습니다.',
+      title: '게시물을 찾을 수 없음',
+      description: '요청하신 게시물을 찾을 수 없습니다.',
     };
   }
 }
 
 export default async function PostDetailPage({ params }: PostDetailPageProps) {
-  const { slug, locale } = await params;
-
-  setRequestLocale(locale);
-  const t = await getTranslations('post');
+  const { slug } = await params;
 
   try {
     // 서비스 레이어 직접 호출 (SSR에서 HTTP 자기호출 방지)
-    const result = await postService.getPostBySlug(slug, locale);
+    const result = await postService.getPostBySlug(slug, 'ko');
 
     // Handle redirect case
     if (result.redirect) {
       const redirectPath = `/${result.slug}`;
-      const localePath = locale === 'ko' ? redirectPath : `/${locale}${redirectPath}`;
-      return <RedirectHandler redirectPath={localePath} />;
+      return <RedirectHandler redirectPath={redirectPath} />;
     }
 
     const post = result.data;
@@ -90,14 +84,11 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
     }
 
     const createdAt = post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt);
-    const formattedDate = new Date(createdAt).toLocaleDateString(
-      locale === 'en' ? 'en-US' : 'ko-KR',
-      {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }
-    );
+    const formattedDate = new Date(createdAt).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
 
     return (
       <Container size="md" className="py-4">
@@ -136,7 +127,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
         {relatedPosts && relatedPosts.length > 0 && (
           <>
             <Divider variant="border" />
-            <RelatedPosts posts={relatedPosts} maxPosts={2} title={t('relatedPosts')} locale={locale} />
+            <RelatedPosts posts={relatedPosts} maxPosts={2} title="추천 게시물" />
           </>
         )}
       </Container>
@@ -151,13 +142,13 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
     return (
       <Container size="md" className="py-8">
-        <ErrorMessage message={locale === 'en' ? 'An error occurred while loading data.' : '데이터를 불러오는 중 오류가 발생했습니다.'} />
+        <ErrorMessage message="데이터를 불러오는 중 오류가 발생했습니다." />
         <div className="mt-4 text-center">
           <Link
-            href={locale === 'ko' ? '/' : `/${locale}`}
+            href="/"
             className="text-blue-600 hover:text-blue-800 transition-colors"
           >
-            {locale === 'en' ? 'Go to Home' : '홈으로 돌아가기'}
+            홈으로 돌아가기
           </Link>
         </div>
       </Container>
@@ -170,10 +161,10 @@ export async function generateStaticParams() {
     const { sitemapService } = await import('@/lib/services');
     const sitemap = await sitemapService.getSitemapData();
 
-    const params: { locale: string; slug: string }[] = [];
-    for (const entry of sitemap) {
-      params.push({ locale: entry.locale, slug: entry.slug });
-    }
+    // 한국어 포스트만 필터링
+    const params: { slug: string }[] = sitemap
+      .filter(entry => entry.locale === 'ko')
+      .map(entry => ({ slug: entry.slug }));
 
     return params;
   } catch (error) {

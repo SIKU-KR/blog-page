@@ -1,11 +1,8 @@
 import removeImports from 'next-remove-imports';
-import createNextIntlPlugin from 'next-intl/plugin';
-
-const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@formatjs/intl-localematcher', 'tslib'],
+  turbopack: {},
   experimental: {
     serverActions: {
       bodySizeLimit: '20mb'
@@ -25,16 +22,28 @@ const nextConfig = {
       },
     ],
   },
-  // 301 redirect from old /posts/* URLs to new /* URLs
+  // 301 redirects
   async redirects() {
     return [
+      // Old /posts/* URLs to new /* URLs
       {
         source: '/posts/:slug*',
         destination: '/:slug*',
-        permanent: true, // 301 redirect
+        permanent: true,
+      },
+      // English locale URLs to Korean (default)
+      {
+        source: '/en',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/en/:slug*',
+        destination: '/:slug*',
+        permanent: true,
       },
     ];
   },
 };
 
-export default withNextIntl(removeImports()(nextConfig));
+export default removeImports()(nextConfig);

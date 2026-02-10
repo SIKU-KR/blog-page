@@ -5,28 +5,23 @@ interface RelatedPostsProps {
   posts: RelatedPost[];
   maxPosts?: number;
   title?: string;
-  locale?: string;
 }
 
-export default function RelatedPosts({ posts, maxPosts = 2, title, locale = 'ko' }: RelatedPostsProps) {
+export default function RelatedPosts({ posts, maxPosts = 2, title }: RelatedPostsProps) {
   const displayPosts = posts.slice(0, maxPosts);
 
   if (displayPosts.length === 0) {
     return null;
   }
 
-  const getPostUrl = (slug: string) => {
-    return locale === 'ko' ? `/${slug}` : `/${locale}/${slug}`;
-  };
-
   return (
     <section className="mt-12 mb-8">
-      <h2 className="text-xl font-bold mb-6 mx-2">{title || 'Related Posts'}</h2>
+      <h2 className="text-xl font-bold mb-6 mx-2">{title || '추천 게시물'}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {displayPosts.map(post => (
           <Link
             key={post.id}
-            href={getPostUrl(post.slug)}
+            href={`/${post.slug}`}
             className="group block p-5 bg-gray-50 rounded-lg border border-gray-100 transition-all hover:bg-gray-100 hover:border-gray-200 hover:shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
