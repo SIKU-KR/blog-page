@@ -100,14 +100,6 @@ export class AuthService {
   }
 
   /**
-   * 로그인 (토큰 기반) - 레거시 지원
-   */
-  loginWithToken(token: string): User | null {
-    setToken(token);
-    return parseJwt(token);
-  }
-
-  /**
    * 로그아웃
    */
   async logout(): Promise<void> {

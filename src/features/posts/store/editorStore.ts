@@ -148,22 +148,8 @@ export const useEditorContent = () =>
     scheduledAt: state.scheduledAt,
   }));
 
-export const useEditorLoading = () =>
-  useEditorStore(state => ({
-    isUploading: state.isUploading,
-    isManualSaving: state.isManualSaving,
-    isSummarizing: state.isSummarizing,
-    isGeneratingSlug: state.isGeneratingSlug,
-  }));
-
 export const useEditorModals = () =>
   useEditorStore(state => ({
     showPublishModal: state.showPublishModal,
     showDraftModal: state.showDraftModal,
-  }));
-
-export const useEditorFeedback = () =>
-  useEditorStore(state => ({
-    isDragging: state.isDragging,
-    lastAutoSavedAt: state.lastAutoSavedAt,
   }));

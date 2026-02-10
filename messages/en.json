@@ -2,7 +2,6 @@
   "common": {
     "home": "Home",
     "blog": "Blog",
-    "about": "About",
     "login": "Login",
     "logout": "Logout",
     "admin": "Admin",
@@ -40,8 +39,6 @@
     "translate": "Generate Translation",
     "translating": "Translating...",
     "translateSuccess": "Translation created successfully",
-    "translateError": "Failed to create translation",
-    "korean": "한국어",
-    "english": "English"
+    "translateError": "Failed to create translation"
   }
 }

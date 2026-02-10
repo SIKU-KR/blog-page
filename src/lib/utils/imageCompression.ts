@@ -161,16 +161,3 @@ export const compressImage = async (
   return compressedFile;
 };
 
-/**
- * Compress multiple images in parallel
- *
- * @param files - Array of image files
- * @param options - Compression options
- * @returns Promise resolving to array of compressed files
- */
-export const compressImages = async (
-  files: File[],
-  options: CompressionOptions = {}
-): Promise<File[]> => {
-  return Promise.all(files.map(file => compressImage(file, options)));
-};

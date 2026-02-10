@@ -2,7 +2,6 @@
   "common": {
     "home": "홈",
     "blog": "블로그",
-    "about": "소개",
     "login": "로그인",
     "logout": "로그아웃",
     "admin": "관리자",
@@ -40,8 +39,6 @@
     "translate": "번역 생성",
     "translating": "번역 중...",
     "translateSuccess": "번역이 생성되었습니다",
-    "translateError": "번역 생성에 실패했습니다",
-    "korean": "한국어",
-    "english": "English"
+    "translateError": "번역 생성에 실패했습니다"
   }
 }

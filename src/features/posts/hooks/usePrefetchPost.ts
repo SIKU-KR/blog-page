@@ -38,37 +38,3 @@ export function usePrefetchPost() {
   );
 }
 
-/**
- * Hook for prefetching posts list on hover over pagination
- *
- * @example
- * ```typescript
- * const prefetchPage = usePrefetchPostsPage();
- *
- * <button onMouseEnter={() => prefetchPage(nextPage)}>
- *   Next Page
- * </button>
- * ```
- */
-export function usePrefetchPostsPage() {
-  const { mutate } = useSWRConfig();
-
-  return useCallback(
-    (page: number, size: number = 5, tag?: string, sort?: string) => {
-      const key = tag ? ['posts', 'tag', tag, page, size, sort] : ['posts', page, size, sort];
-
-      mutate(
-        key,
-        () =>
-          tag
-            ? api.posts.getList(page, size, tag, sort)
-            : api.posts.getList(page, size, undefined, sort),
-        {
-          revalidate: false,
-          populateCache: true,
-        }
-      );
-    },
-    [mutate]
-  );
-}
