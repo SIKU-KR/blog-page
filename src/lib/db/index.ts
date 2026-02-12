@@ -11,18 +11,31 @@ let connection: postgres.Sql | null = null;
 
 function getConnection() {
   if (!connection) {
-    const databaseUrl = process.env.DATABASE_URL
-      || process.env.POSTGRES_URL_NON_POOLING
-      || process.env.POSTGRES_URL;
+    // Supabase 연결 우선순위: Transaction pooler(6543) > Session pooler(5432) > Direct
+    // Serverless 환경에서는 Transaction 모드를 반드시 사용해야 함
+    const databaseUrl =
+      process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
     if (!databaseUrl) {
-      throw new Error('DATABASE_URL environment variable is not set');
+      const msg = 'DATABASE_URL environment variable is not set';
+      console.error(`[DB] ${msg}`);
+      throw new Error(msg);
     }
 
     connection = postgres(databaseUrl, {
-      max: 10, // Maximum pool size
-      idle_timeout: 20, // Close idle connections after 20 seconds
-      connect_timeout: 10, // Connection timeout in seconds
+      max: 1,
+      idle_timeout: 20,
+      connect_timeout: 10,
+      prepare: false,
+      onnotice: () => {},
     });
+
+    connection
+      .unsafe('SELECT 1')
+      .then(() => console.warn('[DB] Connection pool initialized'))
+      .catch(err => {
+        console.error('[DB] Initial connection check failed:', err.message);
+        connection = null;
+      });
   }
   return connection;
 }

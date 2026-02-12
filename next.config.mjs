@@ -3,13 +3,13 @@ const nextConfig = {
   turbopack: {},
   experimental: {
     serverActions: {
-      bodySizeLimit: '20mb'
-    }
+      bodySizeLimit: '20mb',
+    },
   },
   reactStrictMode: true,
-  // Remove all console.* calls from production builds (client & server)
+  // Remove console.* calls from production builds, but keep error/warn for debugging
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production'
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   // Supabase Storage image domain
   images: {

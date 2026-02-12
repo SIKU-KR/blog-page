@@ -31,17 +31,18 @@ export class APIClient {
   private constructor() {
     // 서버사이드에서는 절대 URL 필요 (SSR/serverless 환경)
     // 클라이언트(브라우저)에서는 빈 문자열 → 현재 도메인의 API 라우트 사용
-    const API_URL = typeof window === 'undefined'
-      ? (process.env.NEXT_PUBLIC_SITE_URL
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-        || 'http://localhost:3000')
-      : '';
+    const API_URL =
+      typeof window === 'undefined'
+        ? process.env.NEXT_PUBLIC_SITE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+          'http://localhost:3000'
+        : '';
 
     this.adminClient = axios.create({
       baseURL: API_URL,
       withCredentials: true, // 쿠키 기반 세션 지원
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       timeout: 60000,
     });
@@ -50,7 +51,7 @@ export class APIClient {
       baseURL: API_URL,
       withCredentials: true, // 쿠키 기반 세션 지원
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       timeout: 30000,
     });
@@ -181,7 +182,7 @@ export class APIClient {
     );
   }
 
-  // 재시도 로직을 포함한 요청 함수
+  // 재시도 로직을 포함한 요청 함수 (4xx 에러는 재시도하지 않음)
   private async retryRequest<T>(
     config: APIRequestConfig,
     maxRetries: number = 3
@@ -196,8 +197,24 @@ export class APIClient {
       try {
         return await client.request<T>(axiosConfig);
       } catch (error) {
-        logger.warn(`API 호출 실패 (시도 ${attempt + 1}/${maxRetries})`, error);
-        lastError = error as Error | AxiosError;
+        const axiosErr = error as AxiosError;
+        const status = axiosErr.response?.status;
+
+        // 4xx 에러는 클라이언트 잘못이므로 재시도하지 않고 즉시 throw
+        if (status && status >= 400 && status < 500) {
+          logger.warn(`API 호출 실패 (${status}, 재시도 안함)`, {
+            url: axiosConfig.url,
+            method: axiosConfig.method,
+          });
+          throw error;
+        }
+
+        logger.warn(`API 호출 실패 (시도 ${attempt + 1}/${maxRetries})`, {
+          url: axiosConfig.url,
+          status,
+          message: axiosErr.message,
+        });
+        lastError = axiosErr;
 
         if (attempt < maxRetries - 1) {
           const delay = Math.pow(2, attempt) * 1000;

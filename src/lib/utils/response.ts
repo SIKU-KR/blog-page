@@ -32,11 +32,13 @@ export interface PaginatedResponse<T> {
  */
 export function successResponse<T>(data: T, status = 200): NextResponse<SuccessResponse<T>> {
   return NextResponse.json(
-    JSON.parse(JSON.stringify({
-      success: true,
-      data,
-      error: null,
-    })),
+    JSON.parse(
+      JSON.stringify({
+        success: true,
+        data,
+        error: null,
+      })
+    ),
     { status }
   );
 }
@@ -44,10 +46,7 @@ export function successResponse<T>(data: T, status = 200): NextResponse<SuccessR
 /**
  * Create an error API response
  */
-export function errorResponse(
-  message: string,
-  status = 400
-): NextResponse<ErrorResponseBody> {
+export function errorResponse(message: string, status = 400): NextResponse<ErrorResponseBody> {
   return NextResponse.json(
     {
       success: false,
@@ -73,11 +72,9 @@ export function paginatedResponse<T>(
 /**
  * Global API Error handler wrapper
  */
-import { ValidationError, NotFoundError } from './validation';
+import { ValidationError, NotFoundError, UnauthorizedError } from './validation';
 
-export function withErrorHandling(
-  handler: (request: any, context: any) => Promise<NextResponse>
-) {
+export function withErrorHandling(handler: (request: any, context: any) => Promise<NextResponse>) {
   return async (request: any, context: any) => {
     try {
       return await handler(request, context);
@@ -88,8 +85,13 @@ export function withErrorHandling(
       if (error instanceof NotFoundError) {
         return errorResponse(error.message, 404);
       }
+      if (error instanceof UnauthorizedError) {
+        return errorResponse(error.message, 401);
+      }
 
-      console.error(`API Error [${request.method} ${request.url}]:`, error);
+      const errMessage = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      console.error(`API Error [${request.method} ${request.url}]:`, errMessage, errStack);
       return errorResponse('Internal server error', 500);
     }
   };

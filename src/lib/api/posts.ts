@@ -38,12 +38,7 @@ export class PostsService {
       return response;
     } catch (error) {
       logger.error('게시물 목록 조회 오류', error);
-      return {
-        content: [],
-        totalElements: 0,
-        pageNumber: page,
-        pageSize: size,
-      };
+      throw error;
     }
   }
 
@@ -73,16 +68,14 @@ export class PostsService {
       return response;
     } catch (error) {
       logger.error('관리자 게시물 목록 조회 오류', error);
-      return {
-        content: [],
-        totalElements: 0,
-        pageNumber: page,
-        pageSize: size,
-      };
+      throw error;
     }
   }
 
-  async translate(postId: number, targetLocale: string = 'en'): Promise<{ success: boolean; translatedPost?: Post }> {
+  async translate(
+    postId: number,
+    targetLocale: string = 'en'
+  ): Promise<{ success: boolean; translatedPost?: Post }> {
     try {
       logger.debug('게시물 번역 요청', { postId, targetLocale });
       const response = await this.client.request<{ success: boolean; translatedPost: Post }>({
