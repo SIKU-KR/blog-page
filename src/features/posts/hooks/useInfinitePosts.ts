@@ -10,17 +10,16 @@ export function useInfinitePosts(initialData?: PostListResponse) {
   // Keep sort param if it exists, default to createdAt,desc
   const sort = searchParams.get('sort') || 'createdAt,desc';
   const pageSize = 5;
-  const locale = 'ko';
 
   const getKey = (pageIndex: number, previousPageData: PostListResponse | null) => {
     // If we have previous data and it's empty or less than page size, we've reached the end
     if (previousPageData && !previousPageData.content.length) return null;
 
-    return [pageIndex, pageSize, sort, locale];
+    return [pageIndex, pageSize, sort];
   };
 
-  const fetcher = ([page, size, sort, locale]: [number, number, string, string]) =>
-    api.posts.getList(page, size, sort, locale);
+  const fetcher = ([page, size, sort]: [number, number, string]) =>
+    api.posts.getList(page, size, sort);
 
   const { data, error, size, setSize, isLoading, isValidating, mutate } =
     useSWRInfinite<PostListResponse>(getKey, fetcher, {

@@ -7,7 +7,6 @@ import { eq, and, sql, desc } from 'drizzle-orm';
 
 export interface SitemapEntry {
   slug: string;
-  locale: string;
   updatedAt: Date;
 }
 
@@ -21,7 +20,6 @@ export class SitemapService {
     const result = await db
       .select({
         slug: posts.slug,
-        locale: posts.locale,
         updatedAt: posts.updatedAt,
       })
       .from(posts)

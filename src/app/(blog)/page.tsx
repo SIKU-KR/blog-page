@@ -25,7 +25,6 @@ export default async function Home({ searchParams }: Props) {
 
   try {
     const postsResult = await postService.getPosts({
-      locale: 'ko',
       page: currentPage - 1,
       size: 5,
       sort: 'createdAt,desc',
@@ -49,12 +48,7 @@ export default async function Home({ searchParams }: Props) {
     console.error('Error loading data:', error);
   }
 
-  return (
-    <HomePage
-      initialPosts={postsData}
-      initialPage={currentPage}
-    />
-  );
+  return <HomePage initialPosts={postsData} initialPage={currentPage} />;
 }
 
 export const revalidate = 3600;

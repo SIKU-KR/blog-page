@@ -19,7 +19,8 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
   const router = useRouter();
 
   // SWR hook for infinite scroll
-  const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore } = useInfinitePosts(initialPosts);
+  const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore } =
+    useInfinitePosts(initialPosts);
 
   const handleLoadMore = useCallback(() => {
     setSize(prev => prev + 1);
@@ -50,10 +51,6 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
           onLoadMore={handleLoadMore}
           hasMore={!isReachingEnd}
           isLoadingMore={isLoadingMore}
-          translations={{
-            noPosts: '게시글이 없습니다.',
-            loadError: '블로그 게시물을 불러오는 중 오류가 발생했습니다.',
-          }}
         />
       </div>
     </Container>

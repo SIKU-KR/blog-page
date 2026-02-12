@@ -4,7 +4,12 @@
  */
 import { db, posts, type Post, type NewPost } from '@/lib/db';
 import { eq, and, desc, asc, sql, ne, ilike } from 'drizzle-orm';
-import { ValidationError, NotFoundError, validatePagination, validateSorting } from '@/lib/utils/validation';
+import {
+  ValidationError,
+  NotFoundError,
+  validatePagination,
+  validateSorting,
+} from '@/lib/utils/validation';
 import type { PaginatedResponse } from '@/lib/utils/response';
 
 export interface PostListItem {
@@ -13,11 +18,8 @@ export interface PostListItem {
   title: string;
   summary: string | null;
   state: string;
-  locale: string;
-  originalPostId: number | null;
   createdAt: Date;
   updatedAt: Date;
-  hasTranslation?: boolean;
 }
 
 export interface RelatedPost {
@@ -25,15 +27,6 @@ export interface RelatedPost {
   slug: string;
   title: string;
   score: number;
-}
-
-export interface AvailableLocale {
-  locale: string;
-  slug: string;
-}
-
-interface PostWithLocales extends Post {
-  availableLocales: AvailableLocale[];
 }
 
 export class PostService {
@@ -51,15 +44,12 @@ export class PostService {
    * Get public posts with pagination
    */
   async getPosts(options: {
-    locale?: string;
     page?: number;
     size?: number;
     sort?: string;
   }): Promise<PaginatedResponse<PostListItem>> {
-    const { locale = 'ko', page = 0, size = 10, sort = 'createdAt,desc' } = options;
+    const { page = 0, size = 10, sort = 'createdAt,desc' } = options;
     const { offset, orderFn, dbField } = this.validateAndGetParams({ page, size, sort });
-
-    const now = new Date().toISOString();
 
     const postResults = await db
       .select({
@@ -68,24 +58,16 @@ export class PostService {
         title: posts.title,
         summary: posts.summary,
         state: posts.state,
-        locale: posts.locale,
-        originalPostId: posts.originalPostId,
         createdAt: posts.createdAt,
         updatedAt: posts.updatedAt,
       })
       .from(posts)
-      .where(
-        and(
-          eq(posts.locale, locale),
-          ...this.getPublishedConditions()
-        )
-      )
+      .where(and(...this.getPublishedConditions()))
       .orderBy(orderFn(posts[dbField]))
       .limit(size)
       .offset(offset);
 
-    // Get total count
-    const totalElements = await this.countPublicPosts(locale);
+    const totalElements = await this.countPublicPosts();
 
     return {
       content: postResults,
@@ -99,17 +81,16 @@ export class PostService {
    * Get admin posts with pagination (includes drafts and scheduled)
    */
   async getAdminPosts(options: {
-    locale?: string;
     page?: number;
     size?: number;
     sort?: string;
     search?: string;
     state?: string;
   }): Promise<PaginatedResponse<PostListItem>> {
-    const { locale, page = 0, size = 10, sort = 'createdAt,desc', search, state } = options;
+    const { page = 0, size = 10, sort = 'createdAt,desc', search, state } = options;
     const { offset, orderFn, dbField } = this.validateAndGetParams({ page, size, sort });
 
-    const conditions = locale ? [eq(posts.locale, locale)] : [];
+    const conditions: ReturnType<typeof eq>[] = [];
 
     if (search) {
       conditions.push(ilike(posts.title, `%${search}%`));
@@ -135,8 +116,6 @@ export class PostService {
         title: posts.title,
         summary: posts.summary,
         state: posts.state,
-        locale: posts.locale,
-        originalPostId: posts.originalPostId,
         createdAt: posts.createdAt,
         updatedAt: posts.updatedAt,
       })
@@ -146,9 +125,7 @@ export class PostService {
       .limit(size)
       .offset(offset);
 
-    const postIds = postResults.map(p => p.id);
-    const translatedIds = await this.getTranslatedOriginalIds(postIds);
-    const totalElements = await this.countAdminPosts(locale, search, state);
+    const totalElements = await this.countAdminPosts(search, state);
     const now = new Date();
 
     const content: PostListItem[] = postResults.map(post => {
@@ -160,7 +137,6 @@ export class PostService {
       return {
         ...post,
         state: displayState,
-        hasTranslation: translatedIds.has(post.id),
       };
     });
 
@@ -173,15 +149,9 @@ export class PostService {
   }
 
   /**
-   * Get post by slug with available locales
+   * Get post by slug
    */
-  async getPostBySlug(
-    slug: string,
-    locale?: string
-  ): Promise<
-    | { redirect: true; slug: string; locale?: string }
-    | { redirect: false; data: PostWithLocales }
-  > {
+  async getPostBySlug(slug: string): Promise<Post> {
     if (!slug) {
       throw new ValidationError('Slug parameter is required');
     }
@@ -194,43 +164,16 @@ export class PostService {
       if (!post) {
         throw new NotFoundError('Post not found');
       }
-      return { redirect: true, slug: post.slug, locale: post.locale };
+      return post;
     }
 
-    // Find post by slug and locale
-    let post = locale
-      ? await this.findPublishedBySlugAndLocale(slug, locale)
-      : await this.findPublishedBySlug(slug);
-
-    // If not found with requested locale, try to find any version and redirect
-    if (!post && locale) {
-      const anyLocalePost = await this.findPublishedBySlug(slug);
-      if (anyLocalePost) {
-        const originalId = anyLocalePost.originalPostId || anyLocalePost.id;
-        const translation = await this.findTranslation(originalId, locale);
-        if (translation) {
-          return { redirect: true, slug: translation.slug, locale: translation.locale };
-        }
-        post = anyLocalePost;
-      }
-    }
+    const post = await this.findPublishedBySlug(slug);
 
     if (!post) {
       throw new NotFoundError('Post not found');
     }
 
-    // Get available locales
-    const originalId = post.originalPostId || post.id;
-    const allVersions = await this.findAllLanguageVersions(originalId);
-    const availableLocales = allVersions.map(v => ({ locale: v.locale, slug: v.slug }));
-
-    return {
-      redirect: false,
-      data: {
-        ...post,
-        availableLocales,
-      },
-    };
+    return post;
   }
 
   /**
@@ -255,19 +198,9 @@ export class PostService {
     content: string;
     summary: string;
     state: string;
-    locale?: string;
-    originalPostId?: number | null;
     createdAt?: string;
   }): Promise<Post> {
-    const {
-      title,
-      content,
-      summary,
-      state,
-      locale = 'ko',
-      originalPostId = null,
-      createdAt: requestedCreatedAt,
-    } = postData;
+    const { title, content, summary, state, createdAt: requestedCreatedAt } = postData;
 
     let { slug } = postData;
 
@@ -275,11 +208,11 @@ export class PostService {
       slug = this.generateSlug(title);
     }
 
-    // Check slug uniqueness within locale
+    // Check slug uniqueness
     const existing = await db
       .select({ id: posts.id })
       .from(posts)
-      .where(and(eq(posts.slug, slug), eq(posts.locale, locale)))
+      .where(eq(posts.slug, slug))
       .limit(1);
 
     if (existing.length > 0) {
@@ -297,8 +230,6 @@ export class PostService {
         content,
         summary,
         state,
-        locale,
-        originalPostId,
         createdAt,
         updatedAt: now,
       })
@@ -334,7 +265,7 @@ export class PostService {
       const slugConflict = await db
         .select({ id: posts.id })
         .from(posts)
-        .where(and(eq(posts.slug, slug), eq(posts.locale, existing[0].locale), ne(posts.id, postId)))
+        .where(and(eq(posts.slug, slug), ne(posts.id, postId)))
         .limit(1);
 
       if (slugConflict.length > 0) {
@@ -359,7 +290,11 @@ export class PostService {
       updateData.createdAt = new Date(createdAt);
     }
 
-    const [updated] = await db.update(posts).set(updateData).where(eq(posts.id, postId)).returning();
+    const [updated] = await db
+      .update(posts)
+      .set(updateData)
+      .where(eq(posts.id, postId))
+      .returning();
 
     return updated;
   }
@@ -368,7 +303,11 @@ export class PostService {
    * Delete a post
    */
   async deletePost(postId: number): Promise<{ deleted: boolean; id: number }> {
-    const existing = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, postId)).limit(1);
+    const existing = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
 
     if (existing.length === 0) {
       throw new NotFoundError('Post not found');
@@ -383,10 +322,7 @@ export class PostService {
 
   private getPublishedConditions() {
     const now = new Date().toISOString();
-    return [
-      eq(posts.state, 'published'),
-      sql`${posts.createdAt} <= ${now}`
-    ];
+    return [eq(posts.state, 'published'), sql`${posts.createdAt} <= ${now}`];
   }
 
   private validateAndGetParams(options: { page: number; size: number; sort: string }) {
@@ -417,30 +353,17 @@ export class PostService {
     };
   }
 
-  private async getTranslatedOriginalIds(postIds: number[]): Promise<Set<number>> {
-    if (postIds.length === 0) return new Set();
-
-    const result = await db
-      .selectDistinct({ originalPostId: posts.originalPostId })
-      .from(posts)
-      .where(sql`${posts.originalPostId} IN ${postIds}`);
-
-    return new Set(result.filter(r => r.originalPostId !== null).map(r => r.originalPostId!));
-  }
-
-  private async countPublicPosts(locale: string): Promise<number> {
+  private async countPublicPosts(): Promise<number> {
     const result = await db
       .select({ count: sql<number>`count(*)` })
       .from(posts)
-      .where(
-        and(eq(posts.locale, locale), ...this.getPublishedConditions())
-      );
+      .where(and(...this.getPublishedConditions()));
 
     return result[0]?.count || 0;
   }
 
-  private async countAdminPosts(locale?: string, search?: string, state?: string): Promise<number> {
-    const conditions = locale ? [eq(posts.locale, locale)] : [];
+  private async countAdminPosts(search?: string, state?: string): Promise<number> {
+    const conditions: ReturnType<typeof eq>[] = [];
 
     if (search) {
       conditions.push(ilike(posts.title, `%${search}%`));
@@ -476,22 +399,6 @@ export class PostService {
     return result[0] || null;
   }
 
-  private async findPublishedBySlugAndLocale(slug: string, locale: string): Promise<Post | null> {
-    const result = await db
-      .select()
-      .from(posts)
-      .where(
-        and(
-          eq(posts.slug, slug),
-          eq(posts.locale, locale),
-          ...this.getPublishedConditions()
-        )
-      )
-      .limit(1);
-
-    return result[0] || null;
-  }
-
   private async findPublishedById(id: number): Promise<Post | null> {
     const result = await db
       .select()
@@ -500,29 +407,6 @@ export class PostService {
       .limit(1);
 
     return result[0] || null;
-  }
-
-  private async findTranslation(
-    originalId: number,
-    locale: string
-  ): Promise<{ id: number; slug: string; locale: string } | null> {
-    const result = await db
-      .select({ id: posts.id, slug: posts.slug, locale: posts.locale })
-      .from(posts)
-      .where(and(eq(posts.originalPostId, originalId), eq(posts.locale, locale)))
-      .limit(1);
-
-    return result[0] || null;
-  }
-
-  private async findAllLanguageVersions(postId: number): Promise<{ id: number; slug: string; locale: string }[]> {
-    // Get original and all translations
-    const result = await db
-      .select({ id: posts.id, slug: posts.slug, locale: posts.locale })
-      .from(posts)
-      .where(sql`${posts.id} = ${postId} OR ${posts.originalPostId} = ${postId}`);
-
-    return result;
   }
 }
 

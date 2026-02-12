@@ -29,17 +29,6 @@ const nextConfig = {
         destination: '/:slug*',
         permanent: true,
       },
-      // English locale URLs to Korean (default)
-      {
-        source: '/en',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/en/:slug*',
-        destination: '/:slug*',
-        permanent: true,
-      },
     ];
   },
 };

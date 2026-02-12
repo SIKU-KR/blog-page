@@ -12,9 +12,8 @@ import { useConfirm } from '@/hooks/useConfirm';
 import { ConfirmModal } from '@/components/ui/Modal';
 import { useAdminPosts, useAdminPost } from '@/features/posts/hooks';
 import { useDebounce } from '@/hooks/useDebounce';
-import { deletePostAction, translatePostAction } from '@/lib/actions/posts';
+import { deletePostAction } from '@/lib/actions/posts';
 
-type LocaleTab = 'ko' | 'en';
 type StateFilter = '' | 'published' | 'scheduled' | 'draft';
 
 export default function PostsManagementPage() {
@@ -23,10 +22,8 @@ export default function PostsManagementPage() {
   const { addToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
 
-  const [activeTab, setActiveTab] = useState<LocaleTab>('ko');
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
-  const [translatingId, setTranslatingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [stateFilter, setStateFilter] = useState<StateFilter>('');
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
@@ -35,7 +32,6 @@ export default function PostsManagementPage() {
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   const { posts, totalPosts, isLoading, error, mutate } = useAdminPosts(
-    activeTab,
     page,
     pageSize,
     debouncedSearch || undefined,
@@ -43,12 +39,6 @@ export default function PostsManagementPage() {
   );
 
   const { post: previewPost, isLoading: previewLoading } = useAdminPost(previewPostId);
-
-  const handleTabChange = (tab: LocaleTab) => {
-    setActiveTab(tab);
-    setPage(0);
-    setSelectedIds([]);
-  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -107,23 +97,6 @@ export default function PostsManagementPage() {
       console.error('벌크 삭제 중 오류 발생:', err);
       addToast('일부 게시글 삭제에 실패했습니다.', 'error');
       mutate();
-    }
-  };
-
-  const handleTranslate = async (id: number) => {
-    setTranslatingId(id);
-    try {
-      const result = await translatePostAction(id);
-      if (result.success) {
-        addToast('번역이 생성되었습니다. English 탭에서 확인하세요.', 'success');
-        setActiveTab('en');
-        setPage(0);
-      }
-    } catch (err) {
-      console.error('번역 생성 중 오류 발생:', err);
-      addToast('번역 생성에 실패했습니다', 'error');
-    } finally {
-      setTranslatingId(null);
     }
   };
 
@@ -218,16 +191,6 @@ export default function PostsManagementPage() {
           >
             복제
           </button>
-          {activeTab === 'ko' && (
-            <button
-              onClick={() => handleTranslate(post.id)}
-              disabled={translatingId === post.id || post.hasTranslation}
-              className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={post.hasTranslation ? '이미 번역됨' : '영어로 번역'}
-            >
-              {translatingId === post.id ? '번역 중...' : post.hasTranslation ? '번역됨' : '번역 생성'}
-            </button>
-          )}
           <button
             onClick={() => handleDelete(post.id)}
             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
@@ -251,32 +214,6 @@ export default function PostsManagementPage() {
         </button>
       </div>
 
-      {/* Locale Tabs */}
-      <div className="mb-4 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => handleTabChange('ko')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'ko'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            한국어
-          </button>
-          <button
-            onClick={() => handleTabChange('en')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'en'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            English
-          </button>
-        </nav>
-      </div>
-
       {/* Search + State Filter */}
       <div className="mb-4 flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
@@ -289,7 +226,7 @@ export default function PostsManagementPage() {
           />
         </div>
         <div className="flex gap-1">
-          {stateFilterOptions.map((option) => (
+          {stateFilterOptions.map(option => (
             <button
               key={option.value}
               onClick={() => handleStateFilterChange(option.value)}
@@ -376,7 +313,12 @@ export default function PostsManagementPage() {
                 className="text-gray-500 hover:text-gray-700"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -387,7 +329,9 @@ export default function PostsManagementPage() {
                 <div className="space-y-4">
                   <h1 className="text-2xl font-bold">{previewPost.title}</h1>
                   {previewPost.summary && (
-                    <p className="text-gray-600 italic border-l-4 border-gray-300 pl-4">{previewPost.summary}</p>
+                    <p className="text-gray-600 italic border-l-4 border-gray-300 pl-4">
+                      {previewPost.summary}
+                    </p>
                   )}
                   <div className="border-t border-gray-200 pt-4">
                     <ClientMarkdownRenderer content={previewPost.content} />

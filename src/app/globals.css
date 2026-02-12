@@ -5,8 +5,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --font-pretendard: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
-  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', sans-serif;
+  --font-pretendard:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic',
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  --font-inter:
+    'Inter', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI',
+    sans-serif;
 }
 
 @theme inline {
@@ -23,15 +28,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
-}
-
-/* Locale-based font family */
-html[lang='ko'] body {
-  font-family: var(--font-pretendard);
-}
-
-html[lang='en'] body {
-  font-family: var(--font-inter);
 }
 
 /* Tiptap placeholder */
@@ -65,10 +61,14 @@ html[lang='en'] body {
 .tiptap pre code .hljs-template-tag,
 .tiptap pre code .hljs-template-variable,
 .tiptap pre code .hljs-type,
-.tiptap pre code .hljs-variable.language_ { color: #d73a49 !important; }
+.tiptap pre code .hljs-variable.language_ {
+  color: #d73a49 !important;
+}
 .tiptap pre code .hljs-title,
 .tiptap pre code .hljs-title.class_,
-.tiptap pre code .hljs-title.function_ { color: #6f42c1 !important; }
+.tiptap pre code .hljs-title.function_ {
+  color: #6f42c1 !important;
+}
 .tiptap pre code .hljs-attr,
 .tiptap pre code .hljs-attribute,
 .tiptap pre code .hljs-literal,
@@ -77,17 +77,27 @@ html[lang='en'] body {
 .tiptap pre code .hljs-variable,
 .tiptap pre code .hljs-selector-attr,
 .tiptap pre code .hljs-selector-class,
-.tiptap pre code .hljs-selector-id { color: #005cc5 !important; }
+.tiptap pre code .hljs-selector-id {
+  color: #005cc5 !important;
+}
 .tiptap pre code .hljs-regexp,
 .tiptap pre code .hljs-string,
-.tiptap pre code .hljs-meta .hljs-string { color: #032f62 !important; }
+.tiptap pre code .hljs-meta .hljs-string {
+  color: #032f62 !important;
+}
 .tiptap pre code .hljs-built_in,
-.tiptap pre code .hljs-symbol { color: #e36209 !important; }
+.tiptap pre code .hljs-symbol {
+  color: #e36209 !important;
+}
 .tiptap pre code .hljs-comment,
 .tiptap pre code .hljs-code,
-.tiptap pre code .hljs-formula { color: #6a737d !important; }
+.tiptap pre code .hljs-formula {
+  color: #6a737d !important;
+}
 .tiptap pre code .hljs-name,
-.tiptap pre code .hljs-selector-tag { color: #22863a !important; }
+.tiptap pre code .hljs-selector-tag {
+  color: #22863a !important;
+}
 
 /* Tiptap 표 */
 .tiptap table {

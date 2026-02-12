@@ -103,11 +103,7 @@ export class EmbeddingService {
   /**
    * Find similar posts using vector cosine similarity
    */
-  async findSimilarPosts(
-    postId: number,
-    locale: string = 'ko',
-    limit: number = 4
-  ): Promise<RelatedPost[]> {
+  async findSimilarPosts(postId: number, limit: number = 4): Promise<RelatedPost[]> {
     try {
       // Get the embedding for the current post
       const post = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
@@ -118,13 +114,11 @@ export class EmbeddingService {
 
       const now = new Date().toISOString();
 
-      // Use the search_similar_posts RPC function
       const result = await db.execute(sql`
         SELECT id, slug, title,
                1 - (embedding <=> (SELECT embedding FROM posts WHERE id = ${postId})) as similarity
         FROM posts
         WHERE state = 'published'
-          AND locale = ${locale}
           AND id != ${postId}
           AND embedding IS NOT NULL
           AND created_at <= ${now}
@@ -132,14 +126,14 @@ export class EmbeddingService {
         LIMIT ${limit}
       `);
 
-      return (result as unknown as Array<{ id: number; slug: string; title: string; similarity: number }>).map(
-        row => ({
-          id: row.id,
-          slug: row.slug,
-          title: row.title,
-          similarity: row.similarity,
-        })
-      );
+      return (
+        result as unknown as Array<{ id: number; slug: string; title: string; similarity: number }>
+      ).map(row => ({
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        similarity: row.similarity,
+      }));
     } catch (error) {
       console.error('Failed to find similar posts:', error);
       return [];

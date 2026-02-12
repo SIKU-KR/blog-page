@@ -3,16 +3,10 @@ import { PostSummary } from '../../types';
 import { PostList } from '@/features/posts/components';
 import ErrorMessage from '../ui/feedback/ErrorMessage';
 
-interface BlogSectionTranslations {
-  noPosts: string;
-  loadError: string;
-}
-
 interface BlogSectionProps {
   posts?: PostSummary[];
   className?: string;
   onPageChange?: (page: number) => void;
-  translations?: BlogSectionTranslations;
 
   // Pagination props (legacy)
   pagination?: {
@@ -30,7 +24,6 @@ const BlogSection = memo(function BlogSection({
   posts,
   className = '',
   onPageChange,
-  translations,
   pagination,
   onLoadMore,
   hasMore,
@@ -39,7 +32,7 @@ const BlogSection = memo(function BlogSection({
   if (!posts) {
     return (
       <section className={`py-2 ${className}`}>
-        <ErrorMessage message={translations?.loadError || 'Failed to load blog posts.'} />
+        <ErrorMessage message="블로그 게시물을 불러오는 중 오류가 발생했습니다." />
       </section>
     );
   }
@@ -51,7 +44,7 @@ const BlogSection = memo(function BlogSection({
         currentPage={pagination?.currentPage}
         totalPages={pagination?.totalPages}
         onPageChange={onPageChange}
-        noPostsText={translations?.noPosts}
+        noPostsText="게시글이 없습니다."
         onLoadMore={onLoadMore}
         hasMore={hasMore}
         isLoadingMore={isLoadingMore}

@@ -29,8 +29,6 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     content: body.content,
     summary: body.summary,
     state: body.state,
-    locale: body.locale,
-    originalPostId: body.originalPostId,
     createdAt: body.createdAt,
   });
 

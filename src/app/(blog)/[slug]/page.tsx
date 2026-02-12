@@ -9,7 +9,6 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { RelatedPosts, ShareButton } from '@/features/posts/components';
 import { getPostMetadata } from '@/lib/metadata';
-import RedirectHandler from '@/components/RedirectHandler';
 import { postService, embeddingService } from '@/lib/services';
 import { NotFoundError } from '@/lib/utils/validation';
 
@@ -25,28 +24,16 @@ export async function generateMetadata({
   const { slug } = await params;
 
   try {
-    const result = await postService.getPostBySlug(slug, 'ko');
+    const post = await postService.getPostBySlug(slug);
 
-    if (result.redirect) {
-      return {
-        title: '리다이렉트 중...',
-      };
-    }
-
-    const post = result.data;
     const description = post.summary || post.content.slice(0, 150).replace(/[#*`]/g, '');
-    const createdAt = post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt);
-    const updatedAt = post.updatedAt instanceof Date ? post.updatedAt.toISOString() : String(post.updatedAt);
+    const createdAt =
+      post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt);
+    const updatedAt =
+      post.updatedAt instanceof Date ? post.updatedAt.toISOString() : String(post.updatedAt);
     const canonicalPath = `/${post.slug}`;
 
-    return getPostMetadata(
-      post.title,
-      description,
-      post.slug,
-      canonicalPath,
-      createdAt,
-      updatedAt
-    );
+    return getPostMetadata(post.title, description, post.slug, canonicalPath, createdAt, updatedAt);
   } catch (error) {
     if (!(error instanceof NotFoundError)) {
       console.error('Metadata generation error:', error);
@@ -62,16 +49,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const { slug } = await params;
 
   try {
-    // 서비스 레이어 직접 호출 (SSR에서 HTTP 자기호출 방지)
-    const result = await postService.getPostBySlug(slug, 'ko');
-
-    // Handle redirect case
-    if (result.redirect) {
-      const redirectPath = `/${result.slug}`;
-      return <RedirectHandler redirectPath={redirectPath} />;
-    }
-
-    const post = result.data;
+    const post = await postService.getPostBySlug(slug);
 
     if (!post || !post.id) {
       notFound();
@@ -80,13 +58,19 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
     // Get related posts
     let relatedPosts: Array<{ id: number; slug: string; title: string; score: number }> = [];
     try {
-      const similar = await embeddingService.findSimilarPosts(post.id, post.locale, 4);
-      relatedPosts = similar.map(p => ({ id: p.id, slug: p.slug, title: p.title, score: p.similarity }));
+      const similar = await embeddingService.findSimilarPosts(post.id, 4);
+      relatedPosts = similar.map(p => ({
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        score: p.similarity,
+      }));
     } catch {
       // Gracefully handle embedding service failures
     }
 
-    const createdAt = post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt);
+    const createdAt =
+      post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt);
     const formattedDate = new Date(createdAt).toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',
@@ -151,10 +135,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
       <Container size="md" className="py-8">
         <ErrorMessage message="데이터를 불러오는 중 오류가 발생했습니다." />
         <div className="mt-4 text-center">
-          <Link
-            href="/"
-            className="text-blue-600 hover:text-blue-800 transition-colors"
-          >
+          <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors">
             홈으로 돌아가기
           </Link>
         </div>
@@ -168,10 +149,7 @@ export async function generateStaticParams() {
     const { sitemapService } = await import('@/lib/services');
     const sitemap = await sitemapService.getSitemapData();
 
-    // 한국어 포스트만 필터링
-    const params: { slug: string }[] = sitemap
-      .filter(entry => entry.locale === 'ko')
-      .map(entry => ({ slug: entry.slug }));
+    const params: { slug: string }[] = sitemap.map(entry => ({ slug: entry.slug }));
 
     return params;
   } catch (error) {

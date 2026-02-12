@@ -6,12 +6,6 @@ export interface RelatedPost {
   score: number;
 }
 
-// Locale info for language switching
-export interface LocaleInfo {
-  locale: string;
-  slug: string;
-}
-
 // 게시물 관련 타입
 export interface Post {
   id: number;
@@ -19,9 +13,6 @@ export interface Post {
   title: string;
   content: string;
   summary: string;
-  locale?: string;
-  originalPostId?: number | null;
-  availableLocales?: LocaleInfo[];
   createdAt: string;
   updatedAt: string;
   canonicalPath?: string;
@@ -47,7 +38,6 @@ export interface AdminPostSummary {
   state: 'draft' | 'published' | 'scheduled';
   createdAt: string;
   updatedAt: string;
-  hasTranslation?: boolean;
 }
 
 export interface AdminPostsResponse {

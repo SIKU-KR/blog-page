@@ -15,10 +15,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = normalizeSiteUrl(baseCandidate);
 
   try {
-    // DB에서 직접 사이트맵 데이터 조회 (한국어만)
+    // DB에서 직접 사이트맵 데이터 조회
     const sitemapData = await sitemapService.getSitemapData();
-    const koreanPosts = sitemapData.filter(entry => entry.locale === 'ko');
-    const sitemapPaths = koreanPosts.map(entry => `/${entry.slug}`);
+    const sitemapPaths = sitemapData.map(entry => `/${entry.slug}`);
 
     const currentTime = new Date().toISOString();
     const entries: MetadataRoute.Sitemap = [];
@@ -31,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     });
 
-    // 백엔드에서 제공한 slug 경로들을 사이트맵에 추가 (한국어만)
+    // 백엔드에서 제공한 slug 경로들을 사이트맵에 추가
     for (let index = 0; index < sitemapPaths.length; index++) {
       const path = sitemapPaths[index];
 

@@ -1,6 +1,6 @@
 /**
  * AI Service
- * OpenAI-powered text generation for summaries, slugs, and translations
+ * OpenAI-powered text generation for summaries and slugs
  */
 import OpenAI from 'openai';
 
@@ -14,12 +14,6 @@ export interface SummaryResponse {
 
 export interface SlugResponse {
   slug: string;
-}
-
-export interface TranslationResponse {
-  title: string;
-  content: string;
-  summary: string | null;
 }
 
 export class AIService {
@@ -78,46 +72,6 @@ Return only the slug, nothing else.`,
 
     const slug = this.sanitizeSlug(response.trim());
     return { slug };
-  }
-
-  /**
-   * Translate a post from Korean to English
-   */
-  async translatePost(
-    title: string,
-    content: string,
-    summary: string | null
-  ): Promise<TranslationResponse> {
-    const [translatedTitle, translatedContent, translatedSummary] = await Promise.all([
-      this.translate(title, 'title'),
-      this.translate(content, 'content'),
-      summary ? this.translate(summary, 'summary') : Promise.resolve(null),
-    ]);
-
-    return {
-      title: translatedTitle,
-      content: translatedContent,
-      summary: translatedSummary,
-    };
-  }
-
-  private async translate(text: string, type: 'title' | 'content' | 'summary'): Promise<string> {
-    const systemPrompts: Record<string, string> = {
-      title: 'Translate Korean to English. Output only the translation.',
-      content:
-        'Translate Korean technical blog to English. Preserve Markdown formatting, URLs, code blocks.',
-      summary: 'Translate Korean to English. Max 200 characters. Output only the translation.',
-    };
-
-    const response = await this.callOpenAI(
-      [
-        { role: 'system', content: systemPrompts[type] },
-        { role: 'user', content: text },
-      ],
-      type === 'content' ? 8192 : 256
-    );
-
-    return response.trim();
   }
 
   private async callOpenAI(

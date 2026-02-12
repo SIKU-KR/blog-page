@@ -12,10 +12,16 @@ interface PostItemProps {
 
 export default function PostItem({ post }: PostItemProps) {
   return (
-    <Card className="last:mb-0" hasShadow={false} hasBorder={false} isPadded={false} style={{ marginBottom: '64px' }}>
+    <Card
+      className="last:mb-0"
+      hasShadow={false}
+      hasBorder={false}
+      isPadded={false}
+      style={{ marginBottom: '64px' }}
+    >
       <article className="pb-4">
         <div className="mb-2">
-          <p className="text-sm text-gray-500">{dateUtils.formatByLocale(post.createdAt, 'ko')}</p>
+          <p className="text-sm text-gray-500">{dateUtils.format(post.createdAt)}</p>
         </div>
 
         <Link href={`/${post.slug}`}>
