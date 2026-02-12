@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DataTable from '@/components/ui/DataTable';
-import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
+import ClientMarkdownRenderer from '@/components/ui/data-display/ClientMarkdownRenderer';
 import { AdminPostSummary } from '@/types';
 import { dateUtils } from '@/lib/utils/date';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -390,7 +390,7 @@ export default function PostsManagementPage() {
                     <p className="text-gray-600 italic border-l-4 border-gray-300 pl-4">{previewPost.summary}</p>
                   )}
                   <div className="border-t border-gray-200 pt-4">
-                    <MarkdownRenderer content={previewPost.content} />
+                    <ClientMarkdownRenderer content={previewPost.content} />
                   </div>
                 </div>
               ) : (

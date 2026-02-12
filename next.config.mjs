@@ -1,5 +1,3 @@
-import removeImports from 'next-remove-imports';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   turbopack: {},
@@ -46,4 +44,4 @@ const nextConfig = {
   },
 };
 
-export default removeImports()(nextConfig);
+export default nextConfig;

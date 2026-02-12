@@ -4,13 +4,14 @@ import Container from '@/components/ui/Container';
 import Loading from '@/components/ui/feedback/Loading';
 import ErrorMessage from '@/components/ui/feedback/ErrorMessage';
 import Divider from '@/components/ui/Divider';
-import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
+import ServerMarkdownRenderer from '@/components/ui/data-display/ServerMarkdownRenderer';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { RelatedPosts, ShareButton } from '@/features/posts/components';
 import { getPostMetadata } from '@/lib/metadata';
 import RedirectHandler from '@/components/RedirectHandler';
 import { postService, embeddingService } from '@/lib/services';
+import { NotFoundError } from '@/lib/utils/validation';
 
 interface PostDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -47,7 +48,9 @@ export async function generateMetadata({
       updatedAt
     );
   } catch (error) {
-    console.error('Metadata generation error:', error);
+    if (!(error instanceof NotFoundError)) {
+      console.error('Metadata generation error:', error);
+    }
     return {
       title: '게시물을 찾을 수 없음',
       description: '요청하신 게시물을 찾을 수 없습니다.',
@@ -119,7 +122,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
           <div itemProp="articleBody">
             <Suspense fallback={<Loading />}>
-              <MarkdownRenderer content={post.content} />
+              <ServerMarkdownRenderer content={post.content} />
             </Suspense>
           </div>
         </article>
@@ -133,6 +136,10 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
       </Container>
     );
   } catch (err: unknown) {
+    if (err instanceof NotFoundError) {
+      notFound();
+    }
+
     console.error('Error loading data:', err);
 
     const errorStr = err instanceof Error ? err.message : String(err);

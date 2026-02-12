@@ -34,41 +34,140 @@ html[lang='en'] body {
   font-family: var(--font-inter);
 }
 
-/* Velog 스타일 글쓰기 에디터 개선 */
-.velog-editor {
-  line-height: 1.7;
+/* Tiptap placeholder */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
 }
 
-.velog-editor textarea {
-  line-height: inherit;
+/* Tiptap 코드 블록 — prose 기본 pre 스타일 덮어쓰기 */
+.tiptap pre {
+  background-color: #fafafa !important;
+  color: #24292e !important;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem !important;
 }
 
-.velog-editor textarea::placeholder {
-  opacity: 0.7;
+.tiptap pre code {
+  background: none;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: inherit;
 }
 
-/* 드래그 앤 드롭 영역 애니메이션 */
-.drag-overlay {
-  animation: fadeIn 0.2s ease-in-out;
+.tiptap pre code .hljs-doctag,
+.tiptap pre code .hljs-keyword,
+.tiptap pre code .hljs-template-tag,
+.tiptap pre code .hljs-template-variable,
+.tiptap pre code .hljs-type,
+.tiptap pre code .hljs-variable.language_ { color: #d73a49 !important; }
+.tiptap pre code .hljs-title,
+.tiptap pre code .hljs-title.class_,
+.tiptap pre code .hljs-title.function_ { color: #6f42c1 !important; }
+.tiptap pre code .hljs-attr,
+.tiptap pre code .hljs-attribute,
+.tiptap pre code .hljs-literal,
+.tiptap pre code .hljs-number,
+.tiptap pre code .hljs-operator,
+.tiptap pre code .hljs-variable,
+.tiptap pre code .hljs-selector-attr,
+.tiptap pre code .hljs-selector-class,
+.tiptap pre code .hljs-selector-id { color: #005cc5 !important; }
+.tiptap pre code .hljs-regexp,
+.tiptap pre code .hljs-string,
+.tiptap pre code .hljs-meta .hljs-string { color: #032f62 !important; }
+.tiptap pre code .hljs-built_in,
+.tiptap pre code .hljs-symbol { color: #e36209 !important; }
+.tiptap pre code .hljs-comment,
+.tiptap pre code .hljs-code,
+.tiptap pre code .hljs-formula { color: #6a737d !important; }
+.tiptap pre code .hljs-name,
+.tiptap pre code .hljs-selector-tag { color: #22863a !important; }
+
+/* Tiptap 표 */
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.tiptap th,
+.tiptap td {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 0.75rem;
+  min-width: 80px;
+  text-align: left;
 }
 
-/* 태그 호버 효과 */
-.tag-item {
-  transition: all 0.2s ease-in-out;
+.tiptap th {
+  background-color: #f9fafb;
+  font-weight: 600;
 }
 
-.tag-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.tiptap td p,
+.tiptap th p {
+  margin: 0;
+}
+
+/* Tiptap 이미지 */
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* rehype-pretty-code */
+[data-rehype-pretty-code-figure] pre {
+  background-color: #fafafa;
+  padding: 1.5rem;
+  overflow: auto;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+[data-rehype-pretty-code-figure] code {
+  display: grid;
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+[data-rehype-pretty-code-figure] [data-line] {
+  padding: 0 1rem;
+}
+
+[data-rehype-pretty-code-figure] code::before,
+[data-rehype-pretty-code-figure] code::after {
+  content: none;
+}
+
+/* Prose blockquote */
+.prose blockquote {
+  background-color: #f9fafb;
+  border-left: 3px solid #d1d5db;
+  border-radius: 0 8px 8px 0;
+  padding: 0.75rem 1.25rem;
+}
+
+.prose blockquote p::before,
+.prose blockquote p::after {
+  content: none;
+}
+
+.prose blockquote p:first-child {
+  margin-top: 0;
+}
+
+.prose blockquote p:last-child {
+  margin-bottom: 0;
 }
 
 /* 스크롤바 숨김 유틸리티 */

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Container from '@/components/ui/Container';
-import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
+import ClientMarkdownRenderer from '@/components/ui/data-display/ClientMarkdownRenderer';
 import Divider from '@/components/ui/Divider';
 
 interface PreviewData {
@@ -103,7 +103,7 @@ export default function PreviewPage() {
         <Divider variant="border" />
 
         <div>
-          <MarkdownRenderer content={data.content || '내용을 입력하세요...'} />
+          <ClientMarkdownRenderer content={data.content || '내용을 입력하세요...'} />
         </div>
       </article>
     </Container>

@@ -8,7 +8,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAdminPost } from '@/features/posts/hooks';
 import { createPostAction } from '@/lib/actions/posts';
 
-const VelogWriteEditor = dynamic(() => import('@/components/admin/VelogWriteEditor'), {
+const TiptapEditor = dynamic(() => import('@/components/admin/TiptapEditor'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-screen">
@@ -108,7 +108,7 @@ export default function WritePostPage() {
       };
 
   return (
-    <VelogWriteEditor
+    <TiptapEditor
       initialValues={initialValues}
       isSubmitting={isLoading}
       onSave={handleSave}

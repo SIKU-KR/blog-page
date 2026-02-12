@@ -9,7 +9,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAdminPost } from '@/features/posts/hooks';
 import { updatePostAction } from '@/lib/actions/posts';
 
-const VelogWriteEditor = dynamic(() => import('@/components/admin/VelogWriteEditor'), {
+const TiptapEditor = dynamic(() => import('@/components/admin/TiptapEditor'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-screen">
@@ -99,7 +99,7 @@ export default function EditPostPage() {
   }
 
   return (
-    <VelogWriteEditor
+    <TiptapEditor
       initialValues={{
         title: post.title,
         content: post.content,

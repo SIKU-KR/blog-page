@@ -1,9 +1,39 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
+import StarterKit from '@tiptap/starter-kit';
+import { Markdown } from '@tiptap/markdown';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { common, createLowlight } from 'lowlight';
+import 'highlight.js/styles/github.css';
+import {
+  Bold,
+  Italic,
+  Strikethrough,
+  Code,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Quote,
+  CodeSquare,
+  Minus,
+  ImageIcon,
+  LinkIcon,
+  ChevronLeft,
+  TableIcon,
+} from 'lucide-react';
 
 import { api } from '@/lib/api/index';
-import MarkdownRenderer from '@/components/ui/data-display/MarkdownRenderer';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/hooks/useConfirm';
 import { ConfirmModal } from '@/components/ui/Modal';
@@ -11,10 +41,12 @@ import { useEditorStore } from '@/features/posts/store';
 import { useDraftManagement } from '@/hooks/useDraftManagement';
 import { type Draft } from '@/lib/utils/draft-storage';
 import { dateUtils } from '@/lib/utils/date';
+import { proseClasses } from '@/components/ui/data-display/prose-classes';
 
+const lowlight = createLowlight(common);
 const PREVIEW_DATA_KEY = 'blog-preview-data';
 
-interface VelogWriteEditorProps {
+interface TiptapEditorProps {
   initialValues: {
     title: string;
     content: string;
@@ -33,14 +65,13 @@ interface VelogWriteEditorProps {
   isSubmitting: boolean;
 }
 
-export default function VelogWriteEditor({
+export default function TiptapEditor({
   initialValues,
   onSave,
   onCancel,
   isSubmitting,
-}: VelogWriteEditorProps) {
+}: TiptapEditorProps) {
   const { addToast } = useToast();
-
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
 
   // Zustand store
@@ -55,8 +86,6 @@ export default function VelogWriteEditor({
     setSlug,
     scheduledAt,
     setScheduledAt,
-    isDragging,
-    setIsDragging,
     isUploading,
     setIsUploading,
     showPublishModal,
@@ -85,18 +114,73 @@ export default function VelogWriteEditor({
   } = useDraftManagement(getSnapshot());
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
-  const contentRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isExternalUpdate = useRef(false);
 
-  // 스크롤 연동을 위한 refs
-  const editorPanelRef = useRef<HTMLDivElement>(null);
-  const previewPanelRef = useRef<HTMLDivElement>(null);
-  const isScrollingSyncRef = useRef(false);
+  // Tiptap editor
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({ codeBlock: false }),
+      Markdown,
+      CodeBlockLowlight.configure({ lowlight }),
+      Image.configure({ inline: false, allowBase64: false }),
+      Link.configure({ openOnClick: false, autolink: true }),
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Placeholder.configure({ placeholder: '당신의 이야기를 적어보세요...' }),
+    ],
+    content: initialValues.content,
+    contentType: 'markdown',
+    onUpdate: ({ editor }) => {
+      if (!isExternalUpdate.current) {
+        const md = editor.getMarkdown();
+        setContent(md);
+      }
+    },
+    editorProps: {
+      attributes: {
+        class: `${proseClasses} min-h-[60vh] outline-none focus:outline-none px-4 py-6`
+          .replace(/\s+/g, ' ')
+          .trim(),
+      },
+      handleDrop: (_view, event) => {
+        const files = event.dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+
+        const imageFiles = Array.from(files).filter((f) =>
+          f.type.startsWith('image/')
+        );
+        if (imageFiles.length === 0) return false;
+
+        event.preventDefault();
+        imageFiles.forEach(handleImageUpload);
+        return true;
+      },
+      handlePaste: (_view, event) => {
+        const items = Array.from(event.clipboardData?.items || []);
+        const imageItems = items.filter((item) =>
+          item.type.startsWith('image/')
+        );
+        if (imageItems.length === 0) return false;
+
+        event.preventDefault();
+        imageItems.forEach((item) => {
+          const file = item.getAsFile();
+          if (file) handleImageUpload(file);
+        });
+        return true;
+      },
+    },
+  });
 
   // Initialize from props on mount
   useEffect(() => {
-    // createdAt이 미래 날짜인 경우에만 scheduledAt으로 설정
-    const isFutureDate = initialValues.createdAt && new Date(initialValues.createdAt) > new Date();
+    const isFutureDate =
+      initialValues.createdAt &&
+      new Date(initialValues.createdAt) > new Date();
     initializeFromProps({
       title: initialValues.title,
       content: initialValues.content,
@@ -124,15 +208,26 @@ export default function VelogWriteEditor({
     }
   }, []);
 
-  // textarea 높이 자동 조절 (초기 로드 시)
+  // Store → Tiptap 동기화 (드래프트 로드 등 외부 변경)
   useEffect(() => {
-    if (contentRef.current && editorPanelRef.current) {
-      const scrollTop = editorPanelRef.current.scrollTop;
-      contentRef.current.style.height = 'auto';
-      contentRef.current.style.height = `${contentRef.current.scrollHeight}px`;
-      editorPanelRef.current.scrollTop = scrollTop;
-    }
-  }, [content]);
+    const unsubscribe = useEditorStore.subscribe(
+      (state) => state.content,
+      (newContent) => {
+        if (editor && !editor.isDestroyed) {
+          const current = editor.getMarkdown();
+          if (newContent !== current) {
+            isExternalUpdate.current = true;
+            editor.commands.setContent(newContent, {
+              emitUpdate: false,
+              contentType: 'markdown',
+            });
+            isExternalUpdate.current = false;
+          }
+        }
+      }
+    );
+    return unsubscribe;
+  }, [editor]);
 
   // 수동 임시저장
   const handleManualSave = useCallback(() => {
@@ -226,24 +321,10 @@ export default function VelogWriteEditor({
     setTitle(e.target.value);
   };
 
-  // 내용 변경 핸들러 + 자동 높이 조절
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
-
-    // textarea 높이를 콘텐츠에 맞게 자동 조절 (스크롤 위치 보존)
-    if (contentRef.current && editorPanelRef.current) {
-      const scrollTop = editorPanelRef.current.scrollTop;
-      contentRef.current.style.height = 'auto';
-      contentRef.current.style.height = `${contentRef.current.scrollHeight}px`;
-      editorPanelRef.current.scrollTop = scrollTop;
-    }
-  };
-
   // 이미지 업로드 처리
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
     try {
-      // Compress image before upload
       const { compressImage } = await import('@/lib/utils/imageCompression');
       const compressedFile = await compressImage(file, {
         quality: 0.85,
@@ -253,25 +334,11 @@ export default function VelogWriteEditor({
       });
 
       const response = await api.images.upload(compressedFile);
-      const imageMarkdown = `![${compressedFile.name}](${response.url})`;
-
-      // 커서 위치에 이미지 삽입
-      if (contentRef.current) {
-        const start = contentRef.current.selectionStart;
-        const end = contentRef.current.selectionEnd;
-        const newContent =
-          content.slice(0, start) + '\n' + imageMarkdown + '\n' + content.slice(end);
-        setContent(newContent);
-
-        // 커서 위치 조정
-        setTimeout(() => {
-          if (contentRef.current) {
-            const newCursorPos = start + imageMarkdown.length + 2;
-            contentRef.current.setSelectionRange(newCursorPos, newCursorPos);
-            contentRef.current.focus();
-          }
-        }, 0);
-      }
+      editor
+        ?.chain()
+        .focus()
+        .setImage({ src: response.url, alt: compressedFile.name })
+        .run();
     } catch (error) {
       console.error('이미지 업로드 오류:', error);
       addToast('이미지 업로드에 실패했습니다.', 'error');
@@ -279,34 +346,6 @@ export default function VelogWriteEditor({
       setIsUploading(false);
     }
   };
-
-  // 드래그 앤 드롭 핸들러
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-
-      const files = Array.from(e.dataTransfer.files);
-      const imageFiles = files.filter(file => file.type.startsWith('image/'));
-
-      if (imageFiles.length > 0) {
-        imageFiles.forEach(handleImageUpload);
-      }
-    },
-    [content]
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsDragging(false);
-    }
-  }, []);
 
   // 파일 선택 핸들러
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -316,28 +355,8 @@ export default function VelogWriteEditor({
     }
   };
 
-  // 클립보드 붙여넣기 핸들러
-  const handlePaste = useCallback(
-    (e: React.ClipboardEvent) => {
-      const items = Array.from(e.clipboardData.items);
-      const imageItems = items.filter(item => item.type.startsWith('image/'));
-
-      if (imageItems.length > 0) {
-        e.preventDefault(); // 이미지가 있을 때만 기본 동작 차단
-
-        imageItems.forEach(item => {
-          const file = item.getAsFile();
-          if (file) {
-            handleImageUpload(file);
-          }
-        });
-      }
-    },
-    [handleImageUpload]
-  );
-
   // 출간 모달 열기
-  const handlePublish = () => {
+  const handlePublish = useCallback(() => {
     if (!title.trim()) {
       addToast('제목을 입력해주세요.', 'warning');
       titleRef.current?.focus();
@@ -346,14 +365,12 @@ export default function VelogWriteEditor({
 
     if (!content.trim()) {
       addToast('내용을 입력해주세요.', 'warning');
-      contentRef.current?.focus();
+      editor?.commands.focus();
       return;
     }
 
-    // 모달 열 때 기본값 설정하지 않음 (사용자가 직접 생성하도록)
-
     openPublishModal();
-  };
+  }, [title, content, addToast, openPublishModal, editor]);
 
   // 새 탭에서 미리보기 열기
   const handleOpenPreview = useCallback(() => {
@@ -374,33 +391,21 @@ export default function VelogWriteEditor({
   }, [title, content, summary, addToast]);
 
   // slug 유효성 검증
-  const validateSlug = (slug: string): string | null => {
-    if (!slug.trim()) {
-      return 'URL 주소는 필수입니다.';
-    }
-
-    if (slug.length < 1 || slug.length > 100) {
+  const validateSlug = (slugValue: string): string | null => {
+    if (!slugValue.trim()) return 'URL 주소는 필수입니다.';
+    if (slugValue.length < 1 || slugValue.length > 100)
       return 'URL 주소는 1-100자 사이여야 합니다.';
-    }
-
-    if (!/^[a-z0-9가-힣-]+$/.test(slug)) {
+    if (!/^[a-z0-9가-힣-]+$/.test(slugValue))
       return 'URL 주소는 영문 소문자, 숫자, 한글, 하이픈만 포함할 수 있습니다.';
-    }
-
-    if (slug.startsWith('-') || slug.endsWith('-')) {
+    if (slugValue.startsWith('-') || slugValue.endsWith('-'))
       return 'URL 주소는 하이픈으로 시작하거나 끝날 수 없습니다.';
-    }
-
-    if (slug.includes('--')) {
+    if (slugValue.includes('--'))
       return 'URL 주소에는 연속된 하이픈을 사용할 수 없습니다.';
-    }
-
     return null;
   };
 
   // 실제 저장 처리
   const handleActualSave = async () => {
-    // 유효성 검증
     if (!summary.trim()) {
       addToast('요약을 입력해주세요.', 'warning');
       return;
@@ -421,7 +426,6 @@ export default function VelogWriteEditor({
         createdAt: scheduledAt || undefined,
       });
 
-      // 저장 성공시 해당 제목의 임시저장 삭제
       try {
         const drafts = getDraftsList();
         drafts
@@ -437,103 +441,36 @@ export default function VelogWriteEditor({
     }
   };
 
-  // 텍스트 감싸기 함수
-  const wrapSelectedText = useCallback(
-    (prefix: string, suffix?: string) => {
-      if (!contentRef.current) return;
+  // 링크 삽입
+  const handleInsertLink = useCallback(() => {
+    if (!editor) return;
 
-      const textarea = contentRef.current;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selectedText = content.slice(start, end);
-      const actualSuffix = suffix || prefix;
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL을 입력하세요:', previousUrl || 'https://');
 
-      let newText;
-      let newCursorPos;
+    if (url === null) return;
 
-      if (selectedText) {
-        // 텍스트가 선택된 경우: 선택된 텍스트를 감싸기
-        newText =
-          content.slice(0, start) + prefix + selectedText + actualSuffix + content.slice(end);
-        newCursorPos = end + prefix.length + actualSuffix.length;
-      } else {
-        // 텍스트가 선택되지 않은 경우: 커서 위치에 prefix+suffix 삽입하고 커서를 중간에 위치
-        newText = content.slice(0, start) + prefix + actualSuffix + content.slice(start);
-        newCursorPos = start + prefix.length;
-      }
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
 
-      setContent(newText);
-
-      // 다음 렌더링 후 커서 위치 설정
-      setTimeout(() => {
-        if (contentRef.current) {
-          contentRef.current.setSelectionRange(newCursorPos, newCursorPos);
-          contentRef.current.focus();
-        }
-      }, 0);
-    },
-    [content]
-  );
-
-  // 스크롤 연동 핸들러 (에디터 패널 <-> 미리보기 패널)
-  const handleEditorScroll = useCallback(() => {
-    if (isScrollingSyncRef.current) return;
-
-    const editor = editorPanelRef.current;
-    const preview = previewPanelRef.current;
-    if (!editor || !preview) return;
-
-    const maxEditorScroll = editor.scrollHeight - editor.clientHeight;
-    if (maxEditorScroll <= 0) return;
-
-    isScrollingSyncRef.current = true;
-
-    const editorScrollRatio = editor.scrollTop / maxEditorScroll;
-    const maxPreviewScroll = preview.scrollHeight - preview.clientHeight;
-    preview.scrollTop = editorScrollRatio * maxPreviewScroll;
-
-    requestAnimationFrame(() => {
-      isScrollingSyncRef.current = false;
-    });
-  }, []);
-
-  const handlePreviewScroll = useCallback(() => {
-    if (isScrollingSyncRef.current) return;
-
-    const editor = editorPanelRef.current;
-    const preview = previewPanelRef.current;
-    if (!editor || !preview) return;
-
-    const maxPreviewScroll = preview.scrollHeight - preview.clientHeight;
-    if (maxPreviewScroll <= 0) return;
-
-    isScrollingSyncRef.current = true;
-
-    const previewScrollRatio = preview.scrollTop / maxPreviewScroll;
-    const maxEditorScroll = editor.scrollHeight - editor.clientHeight;
-    editor.scrollTop = previewScrollRatio * maxEditorScroll;
-
-    requestAnimationFrame(() => {
-      isScrollingSyncRef.current = false;
-    });
-  }, []);
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange('link')
+      .setLink({ href: url })
+      .run();
+  }, [editor]);
 
   // 키보드 단축키
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 입력 필드에서 이벤트가 발생한 경우 마크다운 단축키 무시
-      const isInInput =
-        e.target instanceof HTMLElement &&
-        (e.target.tagName === 'INPUT' ||
-          (e.target.tagName === 'TEXTAREA' && e.target !== contentRef.current));
-
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         if (e.shiftKey) {
-          // Cmd/Ctrl + Shift + S: 임시저장
           handleManualSave();
         } else {
-          // Cmd/Ctrl + S: 출간
           handlePublish();
         }
       }
@@ -541,23 +478,42 @@ export default function VelogWriteEditor({
         e.preventDefault();
         setShowDraftModal(true);
       }
-
-      // 마크다운 포맷팅 단축키 (콘텐츠 에디터에서만)
-      if (!isInInput && contentRef.current && e.target === contentRef.current) {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
-          e.preventDefault();
-          wrapSelectedText('`');
-        }
-        if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-          e.preventDefault();
-          wrapSelectedText('**');
-        }
-      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleManualSave, handlePublish, wrapSelectedText]);
+  }, [handleManualSave, handlePublish, setShowDraftModal]);
+
+  // 툴바 버튼 컴포넌트
+  const ToolbarButton = ({
+    onClick,
+    isActive = false,
+    disabled = false,
+    title: buttonTitle,
+    children,
+  }: {
+    onClick: () => void;
+    isActive?: boolean;
+    disabled?: boolean;
+    title: string;
+    children: React.ReactNode;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={buttonTitle}
+      className={`p-1.5 rounded transition-colors ${
+        isActive
+          ? 'bg-gray-200 text-gray-900'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      } disabled:opacity-40 disabled:cursor-not-allowed`}
+    >
+      {children}
+    </button>
+  );
+
+  const iconSize = 18;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden">
@@ -569,14 +525,7 @@ export default function VelogWriteEditor({
               onClick={onCancel}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
+              <ChevronLeft className="w-5 h-5" />
               <span className="hidden sm:inline">나가기</span>
             </button>
 
@@ -587,7 +536,7 @@ export default function VelogWriteEditor({
                   className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   <span className="hidden sm:inline">불러오기</span>
-                  <span className="sm:hidden">📂</span>
+                  <span className="sm:hidden text-base">📂</span>
                 </button>
 
                 <button
@@ -600,7 +549,7 @@ export default function VelogWriteEditor({
                   ) : (
                     <>
                       <span className="hidden sm:inline">임시저장</span>
-                      <span className="sm:hidden">💾</span>
+                      <span className="sm:hidden text-base">💾</span>
                     </>
                   )}
                 </button>
@@ -610,7 +559,7 @@ export default function VelogWriteEditor({
                   className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   <span className="hidden sm:inline">미리보기</span>
-                  <span className="sm:hidden">👁</span>
+                  <span className="sm:hidden text-base">👁</span>
                 </button>
 
                 <button
@@ -631,115 +580,214 @@ export default function VelogWriteEditor({
         </div>
       </div>
 
-      {/* 메인 컨텐츠 - 스플릿 모드 전용 */}
-      <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="hidden lg:grid lg:grid-cols-2">
-          {/* 편집 영역 */}
-          <div
-              ref={editorPanelRef}
-              onScroll={handleEditorScroll}
-              className={`overflow-y-auto max-h-[calc(100vh-60px)] pr-4 lg:pr-8 ${isDragging ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg' : ''}`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-            >
-              {isDragging && (
-                <div className="text-center text-blue-600 font-medium py-8">
-                  <svg
-                    className="w-12 h-12 mx-auto mb-4 text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  이미지를 여기에 드롭하세요
-                </div>
-              )}
+      {/* 제목 입력 */}
+      <div className="flex-shrink-0 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+        <textarea
+          ref={titleRef}
+          value={title}
+          onChange={handleTitleChange}
+          placeholder="제목을 입력하세요"
+          className="w-full text-2xl sm:text-3xl lg:text-4xl font-bold placeholder-gray-300 border-none outline-none resize-none overflow-hidden bg-transparent"
+          rows={1}
+        />
+      </div>
 
-              {/* 제목 입력 */}
-              <div className="flex-shrink-0 pt-4 sm:pt-6">
-                <textarea
-                  ref={titleRef}
-                  value={title}
-                  onChange={handleTitleChange}
-                  placeholder="제목을 입력하세요"
-                  className="w-full text-2xl sm:text-3xl lg:text-4xl font-bold placeholder-gray-300 border-none outline-none resize-none overflow-hidden bg-transparent"
-                  rows={1}
-                />
-              </div>
-
-              {/* 내용 입력 - Full Height textarea */}
-              <div className="mt-6 pb-4">
-                <textarea
-                  ref={contentRef}
-                  value={content}
-                  onChange={handleContentChange}
-                  onPaste={handlePaste}
-                  placeholder="당신의 이야기를 적어보세요..."
-                  className="w-full min-h-[60vh] text-base sm:text-lg leading-relaxed placeholder-gray-400 border-none outline-none resize-none bg-transparent overflow-hidden"
-                />
-
-                {/* 하단 툴바 */}
-                <div className="flex-shrink-0 bg-white flex items-center justify-between py-4 border-t border-gray-100">
-                  <div className="flex items-center gap-4">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      {isUploading ? '업로드 중...' : '이미지 추가'}
-                    </button>
-                  </div>
-
-                  <div className="text-sm text-gray-500">
-                    {content.length.toLocaleString()} 자
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          {/* 미리보기 영역 */}
-          <div
-            ref={previewPanelRef}
-            onScroll={handlePreviewScroll}
-            className="border-l border-gray-200 pl-4 lg:pl-8 overflow-y-auto max-h-[calc(100vh-60px)]"
+      {/* 툴바 */}
+      <div className="flex-shrink-0 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+        <div className="flex items-center gap-0.5 flex-wrap border-b border-gray-200 pb-2">
+          {/* 인라인 포맷팅 */}
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleBold().run()}
+            isActive={editor?.isActive('bold') ?? false}
+            title="Bold (Cmd+B)"
           >
-            <div className="py-4 sm:py-6 space-y-4 sm:space-y-6">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight">
-                {title || '제목을 입력하세요'}
-              </h1>
+            <Bold size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+            isActive={editor?.isActive('italic') ?? false}
+            title="Italic (Cmd+I)"
+          >
+            <Italic size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleStrike().run()}
+            isActive={editor?.isActive('strike') ?? false}
+            title="Strikethrough"
+          >
+            <Strikethrough size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleCode().run()}
+            isActive={editor?.isActive('code') ?? false}
+            title="Inline Code (Cmd+E)"
+          >
+            <Code size={iconSize} />
+          </ToolbarButton>
 
-              <div className="border-t border-gray-200 pt-6">
-                <MarkdownRenderer content={content || '당신의 이야기를 적어보세요...'} />
-              </div>
-            </div>
-          </div>
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          {/* 헤딩 */}
+          <ToolbarButton
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            isActive={editor?.isActive('heading', { level: 2 }) ?? false}
+            title="Heading 2"
+          >
+            <Heading2 size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 3 }).run()
+            }
+            isActive={editor?.isActive('heading', { level: 3 }) ?? false}
+            title="Heading 3"
+          >
+            <Heading3 size={iconSize} />
+          </ToolbarButton>
+
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          {/* 리스트 */}
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            isActive={editor?.isActive('bulletList') ?? false}
+            title="Bullet List"
+          >
+            <List size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            isActive={editor?.isActive('orderedList') ?? false}
+            title="Ordered List"
+          >
+            <ListOrdered size={iconSize} />
+          </ToolbarButton>
+
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          {/* 블록 요소 */}
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+            isActive={editor?.isActive('blockquote') ?? false}
+            title="Blockquote"
+          >
+            <Quote size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+            isActive={editor?.isActive('codeBlock') ?? false}
+            title="Code Block"
+          >
+            <CodeSquare size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+            title="Horizontal Rule"
+          >
+            <Minus size={iconSize} />
+          </ToolbarButton>
+
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          {/* 미디어/링크/표 */}
+          <ToolbarButton
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            title="이미지 추가"
+          >
+            <ImageIcon size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={handleInsertLink}
+            isActive={editor?.isActive('link') ?? false}
+            title="링크 삽입"
+          >
+            <LinkIcon size={iconSize} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() =>
+              editor
+                ?.chain()
+                .focus()
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run()
+            }
+            title="표 삽입"
+          >
+            <TableIcon size={iconSize} />
+          </ToolbarButton>
+
+          {isUploading && (
+            <span className="text-xs text-blue-600 ml-2">업로드 중...</span>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      </div>
+
+      {/* Tiptap 에디터 영역 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {editor && (
+            <BubbleMenu
+              editor={editor}
+              className="flex items-center gap-0.5 bg-white shadow-lg border border-gray-200 rounded-lg p-1"
+            >
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                isActive={editor.isActive('bold')}
+                title="Bold"
+              >
+                <Bold size={16} />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                isActive={editor.isActive('italic')}
+                title="Italic"
+              >
+                <Italic size={16} />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+                isActive={editor.isActive('strike')}
+                title="Strike"
+              >
+                <Strikethrough size={16} />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleCode().run()}
+                isActive={editor.isActive('code')}
+                title="Code"
+              >
+                <Code size={16} />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={handleInsertLink}
+                isActive={editor.isActive('link')}
+                title="Link"
+              >
+                <LinkIcon size={16} />
+              </ToolbarButton>
+            </BubbleMenu>
+          )}
+
+          <EditorContent editor={editor} />
+        </div>
+      </div>
+
+      {/* 하단 글자 수 */}
+      <div className="flex-shrink-0 border-t border-gray-100 bg-white">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-2 text-right">
+          <span className="text-sm text-gray-500">
+            {content.length.toLocaleString()} 자
+          </span>
         </div>
       </div>
 
@@ -765,9 +813,8 @@ export default function VelogWriteEditor({
                       }
                       setIsSummarizing(true);
                       try {
-                        const { summary: generated } = await api.ai.generateSummary({
-                          text: content,
-                        });
+                        const { summary: generated } =
+                          await api.ai.generateSummary({ text: content });
                         if (generated) {
                           setSummary(generated);
                           addToast('AI 요약이 생성되었습니다.', 'success');
@@ -776,7 +823,10 @@ export default function VelogWriteEditor({
                         }
                       } catch (err) {
                         console.error('요약 생성 오류:', err);
-                        addToast('요약 생성 중 오류가 발생했습니다.', 'error');
+                        addToast(
+                          '요약 생성 중 오류가 발생했습니다.',
+                          'error'
+                        );
                       } finally {
                         setIsSummarizing(false);
                       }
@@ -789,7 +839,7 @@ export default function VelogWriteEditor({
                 </div>
                 <textarea
                   value={summary}
-                  onChange={e => setSummary(e.target.value)}
+                  onChange={(e) => setSummary(e.target.value)}
                   placeholder="포스트 요약을 입력하세요..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                   rows={3}
@@ -806,29 +856,44 @@ export default function VelogWriteEditor({
                     type="button"
                     onClick={async () => {
                       if (!title.trim() || !content.trim()) {
-                        addToast('제목과 내용을 입력해주세요.', 'warning');
+                        addToast(
+                          '제목과 내용을 입력해주세요.',
+                          'warning'
+                        );
                         return;
                       }
                       setIsGeneratingSlug(true);
                       try {
-                        const { slug: generated } = await api.ai.generateSlug({
-                          title: title.trim(),
-                          text: content.trim(),
-                        });
+                        const { slug: generated } =
+                          await api.ai.generateSlug({
+                            title: title.trim(),
+                            text: content.trim(),
+                          });
                         if (generated) {
                           setSlug(generated);
-                          addToast('AI slug가 생성되었습니다.', 'success');
+                          addToast(
+                            'AI slug가 생성되었습니다.',
+                            'success'
+                          );
                         } else {
-                          addToast('slug 생성에 실패했습니다.', 'error');
+                          addToast(
+                            'slug 생성에 실패했습니다.',
+                            'error'
+                          );
                         }
                       } catch (err) {
                         console.error('slug 생성 오류:', err);
-                        addToast('slug 생성 중 오류가 발생했습니다.', 'error');
+                        addToast(
+                          'slug 생성 중 오류가 발생했습니다.',
+                          'error'
+                        );
                       } finally {
                         setIsGeneratingSlug(false);
                       }
                     }}
-                    disabled={isGeneratingSlug || !title.trim() || !content.trim()}
+                    disabled={
+                      isGeneratingSlug || !title.trim() || !content.trim()
+                    }
                     className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50 transition-colors"
                   >
                     {isGeneratingSlug ? '생성 중...' : 'AI slug 생성'}
@@ -837,14 +902,17 @@ export default function VelogWriteEditor({
                 <input
                   type="text"
                   value={slug}
-                  onChange={e => setSlug(e.target.value.toLowerCase())}
+                  onChange={(e) => setSlug(e.target.value.toLowerCase())}
                   placeholder="url-friendly-slug"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
                 <div className="text-xs text-gray-500 mt-1">
                   {slug && (
                     <span className="text-green-600">
-                      미리보기: <code className="bg-gray-100 px-1 rounded">/{slug}</code>
+                      미리보기:{' '}
+                      <code className="bg-gray-100 px-1 rounded">
+                        /{slug}
+                      </code>
                     </span>
                   )}
                 </div>
@@ -852,7 +920,9 @@ export default function VelogWriteEditor({
 
               {/* 예약 발행 입력 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">발행 일시</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  발행 일시
+                </label>
                 <div className="space-y-3">
                   <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -863,17 +933,23 @@ export default function VelogWriteEditor({
                         onChange={() => setScheduledAt(null)}
                         className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-sm text-gray-700">즉시 발행</span>
+                      <span className="text-sm text-gray-700">
+                        즉시 발행
+                      </span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
                         name="publishTiming"
                         checked={!!scheduledAt}
-                        onChange={() => setScheduledAt(new Date().toISOString())}
+                        onChange={() =>
+                          setScheduledAt(new Date().toISOString())
+                        }
                         className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-sm text-gray-700">예약 발행</span>
+                      <span className="text-sm text-gray-700">
+                        예약 발행
+                      </span>
                     </label>
                   </div>
 
@@ -882,7 +958,11 @@ export default function VelogWriteEditor({
                       <input
                         type="datetime-local"
                         value={dateUtils.toDatetimeLocal(scheduledAt)}
-                        onChange={(e) => setScheduledAt(dateUtils.fromDatetimeLocal(e.target.value))}
+                        onChange={(e) =>
+                          setScheduledAt(
+                            dateUtils.fromDatetimeLocal(e.target.value)
+                          )
+                        }
                         min={dateUtils.getMinDatetimeLocal()}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       />
@@ -912,8 +992,12 @@ export default function VelogWriteEditor({
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors order-1 sm:order-2"
               >
                 {isSubmitting
-                  ? (scheduledAt ? '예약 중...' : '출간 중...')
-                  : (scheduledAt ? '예약 발행' : '출간하기')}
+                  ? scheduledAt
+                    ? '예약 중...'
+                    : '출간 중...'
+                  : scheduledAt
+                    ? '예약 발행'
+                    : '출간하기'}
               </button>
             </div>
           </div>
@@ -932,14 +1016,19 @@ export default function VelogWriteEditor({
                   <p>임시저장된 글이 없습니다.</p>
                 </div>
               ) : (
-                getDraftsList().map((draft, index) => (
+                getDraftsList().map((draft) => (
                   <div
                     key={draft.id}
                     className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1 cursor-pointer" onClick={() => handleLoadDraft(draft)}>
-                        <h4 className="font-medium text-gray-900 mb-1">{draft.title}</h4>
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleLoadDraft(draft)}
+                      >
+                        <h4 className="font-medium text-gray-900 mb-1">
+                          {draft.title}
+                        </h4>
                         <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                           {draft.content
                             ? draft.content.substring(0, 100) +
@@ -947,12 +1036,14 @@ export default function VelogWriteEditor({
                             : '내용 없음'}
                         </p>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span>{new Date(draft.timestamp).toLocaleString()}</span>
+                          <span>
+                            {new Date(draft.timestamp).toLocaleString()}
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
                         <button
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             handleLoadDraft(draft);
                           }}
@@ -961,7 +1052,7 @@ export default function VelogWriteEditor({
                           불러오기
                         </button>
                         <button
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteDraft(draft.id, draft.title);
                           }}
@@ -986,7 +1077,13 @@ export default function VelogWriteEditor({
                   모두 삭제
                 </button>
               )}
-              <div className={getDraftsList().length > 0 ? '' : 'w-full flex justify-end'}>
+              <div
+                className={
+                  getDraftsList().length > 0
+                    ? ''
+                    : 'w-full flex justify-end'
+                }
+              >
                 <button
                   onClick={() => setShowDraftModal(false)}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
