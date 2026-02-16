@@ -131,8 +131,7 @@ body {
   border-radius: 8px;
 }
 
-/* rehype-pretty-code */
-[data-rehype-pretty-code-figure] pre {
+.prose pre {
   background-color: #fafafa;
   color: #24292e;
   padding: 1.5rem;
@@ -144,6 +143,24 @@ body {
   font-size: 14px;
 }
 
+[data-rehype-pretty-code-figure] pre {
+  padding: 1.5rem;
+}
+
+.prose pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+  border-radius: 0;
+}
+
+.prose pre code:not([data-theme]) {
+  display: block;
+  padding: 0 1rem;
+}
+
+/* rehype-pretty-code */
 [data-rehype-pretty-code-figure] code {
   display: grid;
   background: transparent;
