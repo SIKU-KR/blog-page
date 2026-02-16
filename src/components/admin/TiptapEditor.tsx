@@ -33,6 +33,8 @@ import {
   TableIcon,
 } from 'lucide-react';
 
+import DraftsModal from '@/components/admin/tiptap/DraftsModal';
+import PublishPostModal from '@/components/admin/tiptap/PublishPostModal';
 import { api } from '@/lib/api/index';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -40,7 +42,6 @@ import { ConfirmModal } from '@/components/ui/Modal';
 import { useEditorStore } from '@/features/posts/store';
 import { useDraftManagement } from '@/hooks/useDraftManagement';
 import { type Draft } from '@/lib/utils/draft-storage';
-import { dateUtils } from '@/lib/utils/date';
 import { proseClasses } from '@/components/ui/data-display/prose-classes';
 
 const lowlight = createLowlight(common);
@@ -55,29 +56,6 @@ const editorStyles = {
   toolbarSelect:
     'h-8 rounded border border-gray-300 bg-white px-2 text-xs text-gray-700 outline-none focus:border-gray-400',
   bubbleMenu: 'flex items-center gap-0.5 bg-white shadow-lg border border-gray-200 rounded-lg p-1',
-  modalOverlay: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
-  publishModalContainer:
-    'bg-white rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto',
-  draftModalContainer:
-    'bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto',
-  formTextarea:
-    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none',
-  formInput:
-    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm',
-  formInputMonospace:
-    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm',
-  aiSummaryButton:
-    'text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 transition-colors',
-  aiSlugButton:
-    'text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50 transition-colors',
-  textActionButton: 'px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors',
-  draftLoadButton:
-    'px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors',
-  draftDeleteButton:
-    'px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors',
-  draftDeleteAllButton:
-    'px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors',
-  draftCard: 'border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors',
 };
 
 const CODE_BLOCK_LANGUAGES = [
@@ -478,6 +456,57 @@ export default function TiptapEditor({
     }
   };
 
+  const handleGenerateSummary = async () => {
+    if (!content.trim()) {
+      addToast('요약할 내용이 필요합니다.', 'warning');
+      return;
+    }
+
+    setIsSummarizing(true);
+    try {
+      const { summary: generated } = await api.ai.generateSummary({
+        text: content,
+      });
+      if (generated) {
+        setSummary(generated);
+        addToast('AI 요약이 생성되었습니다.', 'success');
+      } else {
+        addToast('요약 생성에 실패했습니다.', 'error');
+      }
+    } catch (err) {
+      console.error('요약 생성 오류:', err);
+      addToast('요약 생성 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleGenerateSlug = async () => {
+    if (!title.trim() || !content.trim()) {
+      addToast('제목과 내용을 입력해주세요.', 'warning');
+      return;
+    }
+
+    setIsGeneratingSlug(true);
+    try {
+      const { slug: generated } = await api.ai.generateSlug({
+        title: title.trim(),
+        text: content.trim(),
+      });
+      if (generated) {
+        setSlug(generated);
+        addToast('AI slug가 생성되었습니다.', 'success');
+      } else {
+        addToast('slug 생성에 실패했습니다.', 'error');
+      }
+    } catch (err) {
+      console.error('slug 생성 오류:', err);
+      addToast('slug 생성 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsGeneratingSlug(false);
+    }
+  };
+
   // 링크 삽입
   const handleInsertLink = useCallback(() => {
     if (!editor) return;
@@ -566,6 +595,7 @@ export default function TiptapEditor({
   const currentCodeBlockLanguage = editor?.isActive('codeBlock')
     ? ((editor.getAttributes('codeBlock').language as string | undefined) ?? 'plaintext')
     : 'plaintext';
+  const drafts = getDraftsList();
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden">
@@ -837,262 +867,33 @@ export default function TiptapEditor({
         </div>
       </div>
 
-      {/* 출간 모달 */}
-      {showPublishModal && (
-        <div className={editorStyles.modalOverlay}>
-          <div className={editorStyles.publishModalContainer}>
-            <h3 className="text-lg font-bold mb-4">포스트 출간</h3>
+      <PublishPostModal
+        isOpen={showPublishModal}
+        title={title}
+        content={content}
+        summary={summary}
+        slug={slug}
+        scheduledAt={scheduledAt}
+        isSubmitting={isSubmitting}
+        isSummarizing={isSummarizing}
+        isGeneratingSlug={isGeneratingSlug}
+        onSummaryChange={setSummary}
+        onSlugChange={setSlug}
+        onScheduledAtChange={setScheduledAt}
+        onGenerateSummary={handleGenerateSummary}
+        onGenerateSlug={handleGenerateSlug}
+        onClose={closePublishModal}
+        onSave={handleActualSave}
+      />
 
-            <div className="space-y-4 mb-6">
-              {/* 요약 입력 */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    요약 <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!content.trim()) {
-                        addToast('요약할 내용이 필요합니다.', 'warning');
-                        return;
-                      }
-                      setIsSummarizing(true);
-                      try {
-                        const { summary: generated } = await api.ai.generateSummary({
-                          text: content,
-                        });
-                        if (generated) {
-                          setSummary(generated);
-                          addToast('AI 요약이 생성되었습니다.', 'success');
-                        } else {
-                          addToast('요약 생성에 실패했습니다.', 'error');
-                        }
-                      } catch (err) {
-                        console.error('요약 생성 오류:', err);
-                        addToast('요약 생성 중 오류가 발생했습니다.', 'error');
-                      } finally {
-                        setIsSummarizing(false);
-                      }
-                    }}
-                    disabled={isSummarizing || !content.trim()}
-                    className={editorStyles.aiSummaryButton}
-                  >
-                    {isSummarizing ? '생성 중...' : 'AI 요약 생성'}
-                  </button>
-                </div>
-                <textarea
-                  value={summary}
-                  onChange={e => setSummary(e.target.value)}
-                  placeholder="포스트 요약을 입력하세요..."
-                  className={editorStyles.formTextarea}
-                  rows={3}
-                />
-              </div>
-
-              {/* URL 주소 입력 */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    URL 주소 <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!title.trim() || !content.trim()) {
-                        addToast('제목과 내용을 입력해주세요.', 'warning');
-                        return;
-                      }
-                      setIsGeneratingSlug(true);
-                      try {
-                        const { slug: generated } = await api.ai.generateSlug({
-                          title: title.trim(),
-                          text: content.trim(),
-                        });
-                        if (generated) {
-                          setSlug(generated);
-                          addToast('AI slug가 생성되었습니다.', 'success');
-                        } else {
-                          addToast('slug 생성에 실패했습니다.', 'error');
-                        }
-                      } catch (err) {
-                        console.error('slug 생성 오류:', err);
-                        addToast('slug 생성 중 오류가 발생했습니다.', 'error');
-                      } finally {
-                        setIsGeneratingSlug(false);
-                      }
-                    }}
-                    disabled={isGeneratingSlug || !title.trim() || !content.trim()}
-                    className={editorStyles.aiSlugButton}
-                  >
-                    {isGeneratingSlug ? '생성 중...' : 'AI slug 생성'}
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={e => setSlug(e.target.value.toLowerCase())}
-                  placeholder="url-friendly-slug"
-                  className={editorStyles.formInputMonospace}
-                />
-                <div className="text-xs text-gray-500 mt-1">
-                  {slug && (
-                    <span className="text-green-600">
-                      미리보기: <code className="bg-gray-100 px-1 rounded">/{slug}</code>
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* 예약 발행 입력 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">발행 일시</label>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="publishTiming"
-                        checked={!scheduledAt}
-                        onChange={() => setScheduledAt(null)}
-                        className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">즉시 발행</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="publishTiming"
-                        checked={!!scheduledAt}
-                        onChange={() => setScheduledAt(new Date().toISOString())}
-                        className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">예약 발행</span>
-                    </label>
-                  </div>
-
-                  {scheduledAt && (
-                    <div className="space-y-2">
-                      <input
-                        type="datetime-local"
-                        value={dateUtils.toDatetimeLocal(scheduledAt)}
-                        onChange={e => setScheduledAt(dateUtils.fromDatetimeLocal(e.target.value))}
-                        min={dateUtils.getMinDatetimeLocal()}
-                        className={editorStyles.formInput}
-                      />
-                      <div className="text-xs text-blue-600">
-                        예약 발행: {dateUtils.formatKorean(scheduledAt)}{' '}
-                        {new Date(scheduledAt).toLocaleTimeString('ko-KR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <button
-                onClick={closePublishModal}
-                className={`${editorStyles.textActionButton} order-2 sm:order-1`}
-              >
-                취소
-              </button>
-              <button
-                onClick={handleActualSave}
-                disabled={isSubmitting || !summary.trim() || !slug.trim()}
-                className={`${editorStyles.primaryButton} order-1 sm:order-2`}
-              >
-                {isSubmitting
-                  ? scheduledAt
-                    ? '예약 중...'
-                    : '출간 중...'
-                  : scheduledAt
-                    ? '예약 발행'
-                    : '출간하기'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 임시저장 목록 모달 */}
-      {showDraftModal && (
-        <div className={editorStyles.modalOverlay}>
-          <div className={editorStyles.draftModalContainer}>
-            <h3 className="text-lg font-bold mb-4">임시저장된 글 목록</h3>
-
-            <div className="space-y-3 mb-6">
-              {getDraftsList().length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>임시저장된 글이 없습니다.</p>
-                </div>
-              ) : (
-                getDraftsList().map(draft => (
-                  <div key={draft.id} className={editorStyles.draftCard}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 cursor-pointer" onClick={() => handleLoadDraft(draft)}>
-                        <h4 className="font-medium text-gray-900 mb-1">{draft.title}</h4>
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                          {draft.content
-                            ? draft.content.substring(0, 100) +
-                              (draft.content.length > 100 ? '...' : '')
-                            : '내용 없음'}
-                        </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span>{new Date(draft.timestamp).toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleLoadDraft(draft);
-                          }}
-                          className={editorStyles.draftLoadButton}
-                        >
-                          불러오기
-                        </button>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleDeleteDraft(draft.id, draft.title);
-                          }}
-                          className={editorStyles.draftDeleteButton}
-                          title="삭제"
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              {getDraftsList().length > 0 && (
-                <button
-                  onClick={handleDeleteAllDrafts}
-                  className={editorStyles.draftDeleteAllButton}
-                >
-                  모두 삭제
-                </button>
-              )}
-              <div className={getDraftsList().length > 0 ? '' : 'w-full flex justify-end'}>
-                <button
-                  onClick={() => setShowDraftModal(false)}
-                  className={editorStyles.textActionButton}
-                >
-                  닫기
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DraftsModal
+        isOpen={showDraftModal}
+        drafts={drafts}
+        onLoadDraft={handleLoadDraft}
+        onDeleteDraft={handleDeleteDraft}
+        onDeleteAllDrafts={handleDeleteAllDrafts}
+        onClose={() => setShowDraftModal(false)}
+      />
 
       {/* 확인 모달 */}
       <ConfirmModal
