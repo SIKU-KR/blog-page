@@ -45,6 +45,41 @@ import { proseClasses } from '@/components/ui/data-display/prose-classes';
 
 const lowlight = createLowlight(common);
 const PREVIEW_DATA_KEY = 'blog-preview-data';
+const editorStyles = {
+  outlineButton:
+    'px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors',
+  outlineButtonDisabled:
+    'px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors',
+  primaryButton:
+    'px-3 sm:px-4 py-1.5 bg-green-600 text-white text-xs sm:text-sm rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors',
+  toolbarSelect:
+    'h-8 rounded border border-gray-300 bg-white px-2 text-xs text-gray-700 outline-none focus:border-gray-400',
+  bubbleMenu: 'flex items-center gap-0.5 bg-white shadow-lg border border-gray-200 rounded-lg p-1',
+  modalOverlay: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
+  publishModalContainer:
+    'bg-white rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto',
+  draftModalContainer:
+    'bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto',
+  formTextarea:
+    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none',
+  formInput:
+    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm',
+  formInputMonospace:
+    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm',
+  aiSummaryButton:
+    'text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 transition-colors',
+  aiSlugButton:
+    'text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50 transition-colors',
+  textActionButton: 'px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors',
+  draftLoadButton:
+    'px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors',
+  draftDeleteButton:
+    'px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors',
+  draftDeleteAllButton:
+    'px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors',
+  draftCard: 'border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors',
+};
+
 const CODE_BLOCK_LANGUAGES = [
   { value: 'plaintext', label: 'Plain Text' },
   { value: 'bash', label: 'Bash' },
@@ -550,7 +585,7 @@ export default function TiptapEditor({
               <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   onClick={() => setShowDraftModal(true)}
-                  className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  className={editorStyles.outlineButton}
                 >
                   <span className="hidden sm:inline">불러오기</span>
                   <span className="sm:hidden text-base">📂</span>
@@ -559,7 +594,7 @@ export default function TiptapEditor({
                 <button
                   onClick={handleManualSave}
                   disabled={isManualSaving}
-                  className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  className={editorStyles.outlineButtonDisabled}
                 >
                   {isManualSaving ? (
                     '저장 중...'
@@ -571,10 +606,7 @@ export default function TiptapEditor({
                   )}
                 </button>
 
-                <button
-                  onClick={handleOpenPreview}
-                  className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                >
+                <button onClick={handleOpenPreview} className={editorStyles.outlineButton}>
                   <span className="hidden sm:inline">미리보기</span>
                   <span className="sm:hidden text-base">👁</span>
                 </button>
@@ -582,7 +614,7 @@ export default function TiptapEditor({
                 <button
                   onClick={handlePublish}
                   disabled={isSubmitting}
-                  className="px-3 sm:px-4 py-1.5 bg-green-600 text-white text-xs sm:text-sm rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  className={editorStyles.primaryButton}
                 >
                   {isSubmitting ? '출간 중...' : '출간하기'}
                 </button>
@@ -699,7 +731,7 @@ export default function TiptapEditor({
             aria-label="코드 블록 언어 선택"
             value={currentCodeBlockLanguage}
             onChange={handleCodeBlockLanguageChange}
-            className="h-8 rounded border border-gray-300 bg-white px-2 text-xs text-gray-700 outline-none focus:border-gray-400"
+            className={editorStyles.toolbarSelect}
           >
             {CODE_BLOCK_LANGUAGES.map(({ value, label }) => (
               <option key={value || 'empty'} value={value}>
@@ -755,10 +787,7 @@ export default function TiptapEditor({
       <div className="flex-1 overflow-y-auto">
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {editor && (
-            <BubbleMenu
-              editor={editor}
-              className="flex items-center gap-0.5 bg-white shadow-lg border border-gray-200 rounded-lg p-1"
-            >
+            <BubbleMenu editor={editor} className={editorStyles.bubbleMenu}>
               <ToolbarButton
                 onClick={() => editor.chain().focus().toggleBold().run()}
                 isActive={editor.isActive('bold')}
@@ -810,8 +839,8 @@ export default function TiptapEditor({
 
       {/* 출간 모달 */}
       {showPublishModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className={editorStyles.modalOverlay}>
+          <div className={editorStyles.publishModalContainer}>
             <h3 className="text-lg font-bold mb-4">포스트 출간</h3>
 
             <div className="space-y-4 mb-6">
@@ -847,7 +876,7 @@ export default function TiptapEditor({
                       }
                     }}
                     disabled={isSummarizing || !content.trim()}
-                    className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 transition-colors"
+                    className={editorStyles.aiSummaryButton}
                   >
                     {isSummarizing ? '생성 중...' : 'AI 요약 생성'}
                   </button>
@@ -856,7 +885,7 @@ export default function TiptapEditor({
                   value={summary}
                   onChange={e => setSummary(e.target.value)}
                   placeholder="포스트 요약을 입력하세요..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  className={editorStyles.formTextarea}
                   rows={3}
                 />
               </div>
@@ -894,7 +923,7 @@ export default function TiptapEditor({
                       }
                     }}
                     disabled={isGeneratingSlug || !title.trim() || !content.trim()}
-                    className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50 transition-colors"
+                    className={editorStyles.aiSlugButton}
                   >
                     {isGeneratingSlug ? '생성 중...' : 'AI slug 생성'}
                   </button>
@@ -904,7 +933,7 @@ export default function TiptapEditor({
                   value={slug}
                   onChange={e => setSlug(e.target.value.toLowerCase())}
                   placeholder="url-friendly-slug"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
+                  className={editorStyles.formInputMonospace}
                 />
                 <div className="text-xs text-gray-500 mt-1">
                   {slug && (
@@ -949,7 +978,7 @@ export default function TiptapEditor({
                         value={dateUtils.toDatetimeLocal(scheduledAt)}
                         onChange={e => setScheduledAt(dateUtils.fromDatetimeLocal(e.target.value))}
                         min={dateUtils.getMinDatetimeLocal()}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                        className={editorStyles.formInput}
                       />
                       <div className="text-xs text-blue-600">
                         예약 발행: {dateUtils.formatKorean(scheduledAt)}{' '}
@@ -967,14 +996,14 @@ export default function TiptapEditor({
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
                 onClick={closePublishModal}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors order-2 sm:order-1"
+                className={`${editorStyles.textActionButton} order-2 sm:order-1`}
               >
                 취소
               </button>
               <button
                 onClick={handleActualSave}
                 disabled={isSubmitting || !summary.trim() || !slug.trim()}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors order-1 sm:order-2"
+                className={`${editorStyles.primaryButton} order-1 sm:order-2`}
               >
                 {isSubmitting
                   ? scheduledAt
@@ -991,8 +1020,8 @@ export default function TiptapEditor({
 
       {/* 임시저장 목록 모달 */}
       {showDraftModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className={editorStyles.modalOverlay}>
+          <div className={editorStyles.draftModalContainer}>
             <h3 className="text-lg font-bold mb-4">임시저장된 글 목록</h3>
 
             <div className="space-y-3 mb-6">
@@ -1002,10 +1031,7 @@ export default function TiptapEditor({
                 </div>
               ) : (
                 getDraftsList().map(draft => (
-                  <div
-                    key={draft.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                  >
+                  <div key={draft.id} className={editorStyles.draftCard}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1 cursor-pointer" onClick={() => handleLoadDraft(draft)}>
                         <h4 className="font-medium text-gray-900 mb-1">{draft.title}</h4>
@@ -1025,7 +1051,7 @@ export default function TiptapEditor({
                             e.stopPropagation();
                             handleLoadDraft(draft);
                           }}
-                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                          className={editorStyles.draftLoadButton}
                         >
                           불러오기
                         </button>
@@ -1034,7 +1060,7 @@ export default function TiptapEditor({
                             e.stopPropagation();
                             handleDeleteDraft(draft.id, draft.title);
                           }}
-                          className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                          className={editorStyles.draftDeleteButton}
                           title="삭제"
                         >
                           삭제
@@ -1050,7 +1076,7 @@ export default function TiptapEditor({
               {getDraftsList().length > 0 && (
                 <button
                   onClick={handleDeleteAllDrafts}
-                  className="px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                  className={editorStyles.draftDeleteAllButton}
                 >
                   모두 삭제
                 </button>
@@ -1058,7 +1084,7 @@ export default function TiptapEditor({
               <div className={getDraftsList().length > 0 ? '' : 'w-full flex justify-end'}>
                 <button
                   onClick={() => setShowDraftModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  className={editorStyles.textActionButton}
                 >
                   닫기
                 </button>

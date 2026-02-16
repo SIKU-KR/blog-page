@@ -16,6 +16,23 @@ import { deletePostAction } from '@/lib/actions/posts';
 
 type StateFilter = '' | 'published' | 'scheduled' | 'draft';
 
+const postsPageStyles = {
+  rowActionButton: 'px-3 py-1 text-white rounded',
+  rowActionPreview: 'bg-gray-500 hover:bg-gray-600',
+  rowActionEdit: 'bg-blue-500 hover:bg-blue-600',
+  rowActionClone: 'bg-teal-500 hover:bg-teal-600',
+  rowActionDelete: 'bg-red-500 hover:bg-red-600',
+  searchInput:
+    'w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+  filterButtonBase: 'px-3 py-2 text-sm rounded-md transition-colors',
+  filterButtonActive: 'bg-blue-500 text-white',
+  filterButtonInactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  pagerButtonBase: 'px-3 py-1 rounded',
+  pagerButtonEnabled: 'bg-gray-200 hover:bg-gray-300',
+  pagerButtonDisabled: 'bg-gray-300 cursor-not-allowed',
+  modalOverlay: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
+};
+
 export default function PostsManagementPage() {
   useAuthGuard();
   const router = useRouter();
@@ -173,27 +190,27 @@ export default function PostsManagementPage() {
         <div className="flex space-x-2">
           <button
             onClick={() => handlePreview(post.id)}
-            className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+            className={`${postsPageStyles.rowActionButton} ${postsPageStyles.rowActionPreview}`}
             title="미리보기"
           >
             미리보기
           </button>
           <button
             onClick={() => handleEdit(post.id)}
-            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className={`${postsPageStyles.rowActionButton} ${postsPageStyles.rowActionEdit}`}
           >
             수정
           </button>
           <button
             onClick={() => handleClone(post.id)}
-            className="px-3 py-1 bg-teal-500 text-white rounded hover:bg-teal-600"
+            className={`${postsPageStyles.rowActionButton} ${postsPageStyles.rowActionClone}`}
             title="복제"
           >
             복제
           </button>
           <button
             onClick={() => handleDelete(post.id)}
-            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            className={`${postsPageStyles.rowActionButton} ${postsPageStyles.rowActionDelete}`}
           >
             삭제
           </button>
@@ -222,7 +239,7 @@ export default function PostsManagementPage() {
             value={searchTerm}
             onChange={handleSearchChange}
             placeholder="제목으로 검색..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={postsPageStyles.searchInput}
           />
         </div>
         <div className="flex gap-1">
@@ -230,10 +247,10 @@ export default function PostsManagementPage() {
             <button
               key={option.value}
               onClick={() => handleStateFilterChange(option.value)}
-              className={`px-3 py-2 text-sm rounded-md transition-colors ${
+              className={`${postsPageStyles.filterButtonBase} ${
                 stateFilter === option.value
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? postsPageStyles.filterButtonActive
+                  : postsPageStyles.filterButtonInactive
               }`}
             >
               {option.label}
@@ -278,8 +295,10 @@ export default function PostsManagementPage() {
             <button
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
-              className={`px-3 py-1 rounded ${
-                page === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-200 hover:bg-gray-300'
+              className={`${postsPageStyles.pagerButtonBase} ${
+                page === 0
+                  ? postsPageStyles.pagerButtonDisabled
+                  : postsPageStyles.pagerButtonEnabled
               }`}
             >
               이전
@@ -290,10 +309,10 @@ export default function PostsManagementPage() {
             <button
               disabled={(page + 1) * pageSize >= totalPosts}
               onClick={() => setPage(page + 1)}
-              className={`px-3 py-1 rounded ${
+              className={`${postsPageStyles.pagerButtonBase} ${
                 (page + 1) * pageSize >= totalPosts
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-gray-200 hover:bg-gray-300'
+                  ? postsPageStyles.pagerButtonDisabled
+                  : postsPageStyles.pagerButtonEnabled
               }`}
             >
               다음
@@ -304,7 +323,7 @@ export default function PostsManagementPage() {
 
       {/* Preview Modal */}
       {previewPostId !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className={postsPageStyles.modalOverlay}>
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h3 className="text-lg font-bold">미리보기</h3>

@@ -11,6 +11,18 @@ interface PaginationProps {
   onPageChange?: (page: number) => void;
 }
 
+const paginationStyles = {
+  arrowDisabled:
+    'inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-300 cursor-not-allowed',
+  arrowEnabled:
+    'inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-600 hover:text-black hover:border-black hover:bg-gray-50',
+  pageBase:
+    'inline-flex items-center justify-center w-10 h-10 rounded-lg border text-sm font-medium transition-all duration-200',
+  pageActive: 'bg-black text-white border-black',
+  pageInactive:
+    'border-gray-200 text-gray-700 hover:text-black hover:border-black hover:bg-gray-50',
+};
+
 export default function Pagination({
   currentPage,
   totalPages,
@@ -71,11 +83,7 @@ export default function Pagination({
       <div className="flex items-center space-x-2">
         {/* 이전 페이지 버튼 */}
         {currentPage === 1 ? (
-          <span
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-300 cursor-not-allowed"
-            aria-disabled={true}
-            tabIndex={-1}
-          >
+          <span className={paginationStyles.arrowDisabled} aria-disabled={true} tabIndex={-1}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -88,7 +96,7 @@ export default function Pagination({
         ) : onPageChange ? (
           <button
             onClick={(e: React.MouseEvent) => handlePageClick(currentPage - 1, e)}
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-600 hover:text-black hover:border-black hover:bg-gray-50"
+            className={paginationStyles.arrowEnabled}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -100,10 +108,7 @@ export default function Pagination({
             </svg>
           </button>
         ) : (
-          <Link
-            href={getPageUrl(currentPage - 1)}
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-600 hover:text-black hover:border-black hover:bg-gray-50"
-          >
+          <Link href={getPageUrl(currentPage - 1)} className={paginationStyles.arrowEnabled}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -121,10 +126,8 @@ export default function Pagination({
             return onPageChange ? (
               <button
                 key={page}
-                className={`inline-flex items-center justify-center w-10 h-10 rounded-lg border text-sm font-medium transition-all duration-200 ${
-                  page === currentPage
-                    ? 'bg-black text-white border-black'
-                    : 'border-gray-200 text-gray-700 hover:text-black hover:border-black hover:bg-gray-50'
+                className={`${paginationStyles.pageBase} ${
+                  page === currentPage ? paginationStyles.pageActive : paginationStyles.pageInactive
                 }`}
                 aria-current={page === currentPage ? 'page' : undefined}
                 onClick={(e: React.MouseEvent) => handlePageClick(page, e)}
@@ -135,10 +138,8 @@ export default function Pagination({
               <Link
                 key={page}
                 href={getPageUrl(page)}
-                className={`inline-flex items-center justify-center w-10 h-10 rounded-lg border text-sm font-medium transition-all duration-200 ${
-                  page === currentPage
-                    ? 'bg-black text-white border-black'
-                    : 'border-gray-200 text-gray-700 hover:text-black hover:border-black hover:bg-gray-50'
+                className={`${paginationStyles.pageBase} ${
+                  page === currentPage ? paginationStyles.pageActive : paginationStyles.pageInactive
                 }`}
                 aria-current={page === currentPage ? 'page' : undefined}
                 onClick={(e: React.MouseEvent) => handlePageClick(page, e)}
@@ -151,11 +152,7 @@ export default function Pagination({
 
         {/* 다음 페이지 버튼 */}
         {currentPage === totalPages ? (
-          <span
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-300 cursor-not-allowed"
-            aria-disabled={true}
-            tabIndex={-1}
-          >
+          <span className={paginationStyles.arrowDisabled} aria-disabled={true} tabIndex={-1}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -163,17 +160,14 @@ export default function Pagination({
         ) : onPageChange ? (
           <button
             onClick={(e: React.MouseEvent) => handlePageClick(currentPage + 1, e)}
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-600 hover:text-black hover:border-black hover:bg-gray-50"
+            className={paginationStyles.arrowEnabled}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         ) : (
-          <Link
-            href={getPageUrl(currentPage + 1)}
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-600 hover:text-black hover:border-black hover:bg-gray-50"
-          >
+          <Link href={getPageUrl(currentPage + 1)} className={paginationStyles.arrowEnabled}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>

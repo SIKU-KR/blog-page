@@ -7,17 +7,11 @@ import { CreatePostRequest } from '@/types';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAdminPost } from '@/features/posts/hooks';
 import { createPostAction } from '@/lib/actions/posts';
+import { EditorLoadingState, EditorErrorState } from '@/components/admin/EditorPageState';
 
 const TiptapEditor = dynamic(() => import('@/components/admin/TiptapEditor'), {
   ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-screen">
-      <div className="text-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-        <p className="mt-4 text-gray-600">에디터 로딩 중...</p>
-      </div>
-    </div>
-  ),
+  loading: () => <EditorLoadingState message="에디터 로딩 중..." />,
 });
 
 export default function WritePostPage() {
@@ -69,30 +63,11 @@ export default function WritePostPage() {
   };
 
   if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            다시 시도
-          </button>
-        </div>
-      </div>
-    );
+    return <EditorErrorState message={error} onRetry={() => window.location.reload()} />;
   }
 
   if (cloneId && cloneLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">복제할 게시글 로딩 중...</p>
-        </div>
-      </div>
-    );
+    return <EditorLoadingState message="복제할 게시글 로딩 중..." />;
   }
 
   const initialValues = clonePost
