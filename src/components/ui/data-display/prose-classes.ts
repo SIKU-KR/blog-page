@@ -13,7 +13,7 @@ const customStyles = `
   prose-strong:text-gray-900 prose-strong:font-medium
   prose-em:text-gray-700
   prose-a:text-blue-600 prose-a:underline prose-a:decoration-2 prose-a:underline-offset-2 hover:prose-a:text-blue-800
-  prose-pre:text-sm prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-pre:border-0 prose-pre:shadow-none prose-pre:rounded-none prose-pre:my-4
+  prose-pre:text-sm prose-pre:text-gray-800 prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-pre:border-0 prose-pre:shadow-none prose-pre:rounded-none prose-pre:my-4
   prose-code:text-sm prose-code:bg-gray-100 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-code:text-gray-800 prose-code:font-medium
   prose-img:my-6 prose-img:rounded-lg prose-img:shadow-sm prose-img:max-w-full prose-img:max-h-80 prose-img:object-contain prose-img:block
   prose-table:my-6 prose-table:border-collapse
