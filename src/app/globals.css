@@ -134,6 +134,7 @@ body {
 /* rehype-pretty-code */
 [data-rehype-pretty-code-figure] pre {
   background-color: #fafafa;
+  color: #24292e;
   padding: 1.5rem;
   overflow: auto;
   max-width: 100%;
@@ -146,6 +147,7 @@ body {
 [data-rehype-pretty-code-figure] code {
   display: grid;
   background: transparent;
+  color: inherit;
   padding: 0;
   font-size: inherit;
 }
