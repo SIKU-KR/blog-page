@@ -45,6 +45,19 @@ import { proseClasses } from '@/components/ui/data-display/prose-classes';
 
 const lowlight = createLowlight(common);
 const PREVIEW_DATA_KEY = 'blog-preview-data';
+const CODE_BLOCK_LANGUAGES = [
+  { value: 'plaintext', label: 'Plain Text' },
+  { value: 'bash', label: 'Bash' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'tsx', label: 'TSX' },
+  { value: 'json', label: 'JSON' },
+  { value: 'python', label: 'Python' },
+  { value: 'sql', label: 'SQL' },
+  { value: 'html', label: 'HTML' },
+  { value: 'css', label: 'CSS' },
+  { value: 'markdown', label: 'Markdown' },
+] as const;
 
 interface TiptapEditorProps {
   initialValues: {
@@ -150,9 +163,7 @@ export default function TiptapEditor({
         const files = event.dataTransfer?.files;
         if (!files || files.length === 0) return false;
 
-        const imageFiles = Array.from(files).filter((f) =>
-          f.type.startsWith('image/')
-        );
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
         if (imageFiles.length === 0) return false;
 
         event.preventDefault();
@@ -161,13 +172,11 @@ export default function TiptapEditor({
       },
       handlePaste: (_view, event) => {
         const items = Array.from(event.clipboardData?.items || []);
-        const imageItems = items.filter((item) =>
-          item.type.startsWith('image/')
-        );
+        const imageItems = items.filter(item => item.type.startsWith('image/'));
         if (imageItems.length === 0) return false;
 
         event.preventDefault();
-        imageItems.forEach((item) => {
+        imageItems.forEach(item => {
           const file = item.getAsFile();
           if (file) handleImageUpload(file);
         });
@@ -178,9 +187,7 @@ export default function TiptapEditor({
 
   // Initialize from props on mount
   useEffect(() => {
-    const isFutureDate =
-      initialValues.createdAt &&
-      new Date(initialValues.createdAt) > new Date();
+    const isFutureDate = initialValues.createdAt && new Date(initialValues.createdAt) > new Date();
     initializeFromProps({
       title: initialValues.title,
       content: initialValues.content,
@@ -211,8 +218,8 @@ export default function TiptapEditor({
   // Store → Tiptap 동기화 (드래프트 로드 등 외부 변경)
   useEffect(() => {
     const unsubscribe = useEditorStore.subscribe(
-      (state) => state.content,
-      (newContent) => {
+      state => state.content,
+      newContent => {
         if (editor && !editor.isDestroyed) {
           const current = editor.getMarkdown();
           if (newContent !== current) {
@@ -334,11 +341,7 @@ export default function TiptapEditor({
       });
 
       const response = await api.images.upload(compressedFile);
-      editor
-        ?.chain()
-        .focus()
-        .setImage({ src: response.url, alt: compressedFile.name })
-        .run();
+      editor?.chain().focus().setImage({ src: response.url, alt: compressedFile.name }).run();
     } catch (error) {
       console.error('이미지 업로드 오류:', error);
       addToast('이미지 업로드에 실패했습니다.', 'error');
@@ -399,8 +402,7 @@ export default function TiptapEditor({
       return 'URL 주소는 영문 소문자, 숫자, 한글, 하이픈만 포함할 수 있습니다.';
     if (slugValue.startsWith('-') || slugValue.endsWith('-'))
       return 'URL 주소는 하이픈으로 시작하거나 끝날 수 없습니다.';
-    if (slugValue.includes('--'))
-      return 'URL 주소에는 연속된 하이픈을 사용할 수 없습니다.';
+    if (slugValue.includes('--')) return 'URL 주소에는 연속된 하이픈을 사용할 수 없습니다.';
     return null;
   };
 
@@ -429,8 +431,8 @@ export default function TiptapEditor({
       try {
         const drafts = getDraftsList();
         drafts
-          .filter((draft) => draft.title === title.trim())
-          .forEach((draft) => deleteDraftById(draft.id));
+          .filter(draft => draft.title === title.trim())
+          .forEach(draft => deleteDraftById(draft.id));
       } catch (error) {
         console.error('임시저장 정리 오류:', error);
       }
@@ -455,13 +457,25 @@ export default function TiptapEditor({
       return;
     }
 
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange('link')
-      .setLink({ href: url })
-      .run();
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
+
+  const handleCodeBlockLanguageChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      if (!editor) return;
+
+      const language = e.target.value;
+      const attrs = { language };
+
+      if (editor.isActive('codeBlock')) {
+        editor.chain().focus().updateAttributes('codeBlock', attrs).run();
+        return;
+      }
+
+      editor.chain().focus().setCodeBlock(attrs).run();
+    },
+    [editor]
+  );
 
   // 키보드 단축키
   useEffect(() => {
@@ -514,6 +528,9 @@ export default function TiptapEditor({
   );
 
   const iconSize = 18;
+  const currentCodeBlockLanguage = editor?.isActive('codeBlock')
+    ? ((editor.getAttributes('codeBlock').language as string | undefined) ?? 'plaintext')
+    : 'plaintext';
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden">
@@ -629,18 +646,14 @@ export default function TiptapEditor({
 
           {/* 헤딩 */}
           <ToolbarButton
-            onClick={() =>
-              editor?.chain().focus().toggleHeading({ level: 2 }).run()
-            }
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
             isActive={editor?.isActive('heading', { level: 2 }) ?? false}
             title="Heading 2"
           >
             <Heading2 size={iconSize} />
           </ToolbarButton>
           <ToolbarButton
-            onClick={() =>
-              editor?.chain().focus().toggleHeading({ level: 3 }).run()
-            }
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
             isActive={editor?.isActive('heading', { level: 3 }) ?? false}
             title="Heading 3"
           >
@@ -682,6 +695,18 @@ export default function TiptapEditor({
           >
             <CodeSquare size={iconSize} />
           </ToolbarButton>
+          <select
+            aria-label="코드 블록 언어 선택"
+            value={currentCodeBlockLanguage}
+            onChange={handleCodeBlockLanguageChange}
+            className="h-8 rounded border border-gray-300 bg-white px-2 text-xs text-gray-700 outline-none focus:border-gray-400"
+          >
+            {CODE_BLOCK_LANGUAGES.map(({ value, label }) => (
+              <option key={value || 'empty'} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
           <ToolbarButton
             onClick={() => editor?.chain().focus().setHorizontalRule().run()}
             title="Horizontal Rule"
@@ -708,20 +733,14 @@ export default function TiptapEditor({
           </ToolbarButton>
           <ToolbarButton
             onClick={() =>
-              editor
-                ?.chain()
-                .focus()
-                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                .run()
+              editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
             }
             title="표 삽입"
           >
             <TableIcon size={iconSize} />
           </ToolbarButton>
 
-          {isUploading && (
-            <span className="text-xs text-blue-600 ml-2">업로드 중...</span>
-          )}
+          {isUploading && <span className="text-xs text-blue-600 ml-2">업로드 중...</span>}
         </div>
         <input
           ref={fileInputRef}
@@ -785,9 +804,7 @@ export default function TiptapEditor({
       {/* 하단 글자 수 */}
       <div className="flex-shrink-0 border-t border-gray-100 bg-white">
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-2 text-right">
-          <span className="text-sm text-gray-500">
-            {content.length.toLocaleString()} 자
-          </span>
+          <span className="text-sm text-gray-500">{content.length.toLocaleString()} 자</span>
         </div>
       </div>
 
@@ -813,8 +830,9 @@ export default function TiptapEditor({
                       }
                       setIsSummarizing(true);
                       try {
-                        const { summary: generated } =
-                          await api.ai.generateSummary({ text: content });
+                        const { summary: generated } = await api.ai.generateSummary({
+                          text: content,
+                        });
                         if (generated) {
                           setSummary(generated);
                           addToast('AI 요약이 생성되었습니다.', 'success');
@@ -823,10 +841,7 @@ export default function TiptapEditor({
                         }
                       } catch (err) {
                         console.error('요약 생성 오류:', err);
-                        addToast(
-                          '요약 생성 중 오류가 발생했습니다.',
-                          'error'
-                        );
+                        addToast('요약 생성 중 오류가 발생했습니다.', 'error');
                       } finally {
                         setIsSummarizing(false);
                       }
@@ -839,7 +854,7 @@ export default function TiptapEditor({
                 </div>
                 <textarea
                   value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
+                  onChange={e => setSummary(e.target.value)}
                   placeholder="포스트 요약을 입력하세요..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                   rows={3}
@@ -856,44 +871,29 @@ export default function TiptapEditor({
                     type="button"
                     onClick={async () => {
                       if (!title.trim() || !content.trim()) {
-                        addToast(
-                          '제목과 내용을 입력해주세요.',
-                          'warning'
-                        );
+                        addToast('제목과 내용을 입력해주세요.', 'warning');
                         return;
                       }
                       setIsGeneratingSlug(true);
                       try {
-                        const { slug: generated } =
-                          await api.ai.generateSlug({
-                            title: title.trim(),
-                            text: content.trim(),
-                          });
+                        const { slug: generated } = await api.ai.generateSlug({
+                          title: title.trim(),
+                          text: content.trim(),
+                        });
                         if (generated) {
                           setSlug(generated);
-                          addToast(
-                            'AI slug가 생성되었습니다.',
-                            'success'
-                          );
+                          addToast('AI slug가 생성되었습니다.', 'success');
                         } else {
-                          addToast(
-                            'slug 생성에 실패했습니다.',
-                            'error'
-                          );
+                          addToast('slug 생성에 실패했습니다.', 'error');
                         }
                       } catch (err) {
                         console.error('slug 생성 오류:', err);
-                        addToast(
-                          'slug 생성 중 오류가 발생했습니다.',
-                          'error'
-                        );
+                        addToast('slug 생성 중 오류가 발생했습니다.', 'error');
                       } finally {
                         setIsGeneratingSlug(false);
                       }
                     }}
-                    disabled={
-                      isGeneratingSlug || !title.trim() || !content.trim()
-                    }
+                    disabled={isGeneratingSlug || !title.trim() || !content.trim()}
                     className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50 transition-colors"
                   >
                     {isGeneratingSlug ? '생성 중...' : 'AI slug 생성'}
@@ -902,17 +902,14 @@ export default function TiptapEditor({
                 <input
                   type="text"
                   value={slug}
-                  onChange={(e) => setSlug(e.target.value.toLowerCase())}
+                  onChange={e => setSlug(e.target.value.toLowerCase())}
                   placeholder="url-friendly-slug"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
                 <div className="text-xs text-gray-500 mt-1">
                   {slug && (
                     <span className="text-green-600">
-                      미리보기:{' '}
-                      <code className="bg-gray-100 px-1 rounded">
-                        /{slug}
-                      </code>
+                      미리보기: <code className="bg-gray-100 px-1 rounded">/{slug}</code>
                     </span>
                   )}
                 </div>
@@ -920,9 +917,7 @@ export default function TiptapEditor({
 
               {/* 예약 발행 입력 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  발행 일시
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">발행 일시</label>
                 <div className="space-y-3">
                   <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -933,23 +928,17 @@ export default function TiptapEditor({
                         onChange={() => setScheduledAt(null)}
                         className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-sm text-gray-700">
-                        즉시 발행
-                      </span>
+                      <span className="text-sm text-gray-700">즉시 발행</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
                         name="publishTiming"
                         checked={!!scheduledAt}
-                        onChange={() =>
-                          setScheduledAt(new Date().toISOString())
-                        }
+                        onChange={() => setScheduledAt(new Date().toISOString())}
                         className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-sm text-gray-700">
-                        예약 발행
-                      </span>
+                      <span className="text-sm text-gray-700">예약 발행</span>
                     </label>
                   </div>
 
@@ -958,11 +947,7 @@ export default function TiptapEditor({
                       <input
                         type="datetime-local"
                         value={dateUtils.toDatetimeLocal(scheduledAt)}
-                        onChange={(e) =>
-                          setScheduledAt(
-                            dateUtils.fromDatetimeLocal(e.target.value)
-                          )
-                        }
+                        onChange={e => setScheduledAt(dateUtils.fromDatetimeLocal(e.target.value))}
                         min={dateUtils.getMinDatetimeLocal()}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       />
@@ -1016,19 +1001,14 @@ export default function TiptapEditor({
                   <p>임시저장된 글이 없습니다.</p>
                 </div>
               ) : (
-                getDraftsList().map((draft) => (
+                getDraftsList().map(draft => (
                   <div
                     key={draft.id}
                     className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start justify-between">
-                      <div
-                        className="flex-1 cursor-pointer"
-                        onClick={() => handleLoadDraft(draft)}
-                      >
-                        <h4 className="font-medium text-gray-900 mb-1">
-                          {draft.title}
-                        </h4>
+                      <div className="flex-1 cursor-pointer" onClick={() => handleLoadDraft(draft)}>
+                        <h4 className="font-medium text-gray-900 mb-1">{draft.title}</h4>
                         <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                           {draft.content
                             ? draft.content.substring(0, 100) +
@@ -1036,14 +1016,12 @@ export default function TiptapEditor({
                             : '내용 없음'}
                         </p>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span>
-                            {new Date(draft.timestamp).toLocaleString()}
-                          </span>
+                          <span>{new Date(draft.timestamp).toLocaleString()}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
                         <button
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
                             handleLoadDraft(draft);
                           }}
@@ -1052,7 +1030,7 @@ export default function TiptapEditor({
                           불러오기
                         </button>
                         <button
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
                             handleDeleteDraft(draft.id, draft.title);
                           }}
@@ -1077,13 +1055,7 @@ export default function TiptapEditor({
                   모두 삭제
                 </button>
               )}
-              <div
-                className={
-                  getDraftsList().length > 0
-                    ? ''
-                    : 'w-full flex justify-end'
-                }
-              >
+              <div className={getDraftsList().length > 0 ? '' : 'w-full flex justify-end'}>
                 <button
                   onClick={() => setShowDraftModal(false)}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
