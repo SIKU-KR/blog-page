@@ -1,9 +1,0 @@
-# Command: ls -la .sisyphus/evidence/
-total 40
-drwxr-xr-x@ 7 peter_mac  staff  224  2월 17 11:46 .
-drwxr-xr-x@ 9 peter_mac  staff  288  2월 17 11:46 ..
--rw-r--r--@ 1 peter_mac  staff  628  2월 17 11:46 README.md
--rw-r--r--@ 1 peter_mac  staff   38  2월 17 11:46 task-3-evidence-list.txt
--rw-r--r--@ 1 peter_mac  staff  672  2월 17 11:46 task-3-evidence-readme.txt
--rw-r--r--@ 1 peter_mac  staff  150  2월 17 11:46 task-4-guardrail.txt
--rw-r--r--@ 1 peter_mac  staff  284  2월 17 11:46 task-4-policy.txt
