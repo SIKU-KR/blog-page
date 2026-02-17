@@ -1,3 +1,11 @@
+import type {
+  AdminPostSummaryContract,
+  AdminPostsContract,
+  AuthSessionContract,
+  PostListContract,
+  PostSummaryContract,
+} from '@/shared/schemas';
+
 // 관련 게시물 타입
 export interface RelatedPost {
   id: number;
@@ -19,33 +27,12 @@ export interface Post {
   relatedPosts?: RelatedPost[];
 }
 
-export interface PostSummary {
-  id: number;
-  slug: string;
-  title: string;
-  summary: string;
-  state?: 'draft' | 'published';
-  createdAt: string;
-  updatedAt: string;
-}
+export type PostSummary = PostSummaryContract;
 
 // Admin API 전용 타입 (scheduled 상태 포함)
-export interface AdminPostSummary {
-  id: number;
-  slug: string;
-  title: string;
-  summary: string | null;
-  state: 'draft' | 'published' | 'scheduled';
-  createdAt: string;
-  updatedAt: string;
-}
+export type AdminPostSummary = AdminPostSummaryContract;
 
-export interface AdminPostsResponse {
-  content: AdminPostSummary[];
-  totalElements: number;
-  pageNumber: number;
-  pageSize: number;
-}
+export type AdminPostsResponse = AdminPostsContract;
 
 // API 에러 관련 타입
 export interface ErrorInfo {
@@ -84,13 +71,10 @@ export interface LoginRequest {
   password: string;
 }
 
+export type AuthSessionResponse = AuthSessionContract;
+
 // API 응답 관련 타입
-export interface PostListResponse {
-  content: PostSummary[];
-  totalElements: number;
-  pageNumber: number;
-  pageSize: number;
-}
+export type PostListResponse = PostListContract;
 
 export interface APIResponse<T> {
   success: boolean;

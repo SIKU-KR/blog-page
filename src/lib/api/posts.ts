@@ -1,12 +1,14 @@
-import {
+import type {
   Post,
   GetPostsResponse,
   CreatePostRequest,
   UpdatePostRequest,
   AdminPostsResponse,
-} from '../../types';
-import { APIClient, API_ENDPOINTS } from './client';
+} from '@/types';
 import { logger } from '@/lib/utils/logger';
+import { AdminPostsContractSchema, PostListContractSchema } from '@/shared/schemas';
+import { APIClient, API_ENDPOINTS } from './client';
+import { parseBoundaryContract } from './contractValidation';
 
 export class PostsService {
   private client: APIClient;
@@ -32,8 +34,13 @@ export class PostsService {
           sort,
         },
       });
-      logger.debug('게시물 목록 응답', response);
-      return response;
+      const validatedResponse = parseBoundaryContract(
+        response,
+        PostListContractSchema,
+        'PostsService.getList'
+      );
+      logger.debug('게시물 목록 응답', validatedResponse);
+      return validatedResponse;
     } catch (error) {
       logger.error('게시물 목록 조회 오류', error);
       throw error;
@@ -60,8 +67,13 @@ export class PostsService {
           ...(state && { state }),
         },
       });
-      logger.debug('관리자 게시물 목록 응답', response);
-      return response;
+      const validatedResponse = parseBoundaryContract(
+        response,
+        AdminPostsContractSchema,
+        'PostsService.getAdminList'
+      );
+      logger.debug('관리자 게시물 목록 응답', validatedResponse);
+      return validatedResponse;
     } catch (error) {
       logger.error('관리자 게시물 목록 조회 오류', error);
       throw error;

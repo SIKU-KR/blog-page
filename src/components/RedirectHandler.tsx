@@ -12,12 +12,8 @@ const RedirectHandler = ({ redirectPath }: RedirectHandlerProps) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // 현재 경로와 리다이렉트할 경로가 다른 경우에만 리다이렉트
     if (pathname !== redirectPath) {
-      console.log('리다이렉트 수행:', { from: pathname, to: redirectPath });
       router.replace(redirectPath);
-    } else {
-      console.log('리다이렉트 스킵: 현재 경로와 동일함', pathname);
     }
   }, [redirectPath, router, pathname]);
 

@@ -1,5 +1,3 @@
-'use client';
-
 import DataTable, { type Column, type DataTableProps } from '@/components/ui/DataTable';
 
 export type { Column };

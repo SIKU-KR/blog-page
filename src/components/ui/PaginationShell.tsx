@@ -1,67 +1,65 @@
-'use client';
+import Link from 'next/link';
 
-import React from 'react';
-import PaginationShell, { paginationStyles } from '@/components/ui/PaginationShell';
-
-interface PaginationProps {
+interface PaginationShellProps {
   currentPage: number;
   totalPages: number;
   baseUrl: string;
   className?: string;
-  onPageChange?: (page: number) => void;
 }
 
-export default function Pagination({
+export const paginationStyles = {
+  arrowDisabled:
+    'inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-300 cursor-not-allowed',
+  arrowEnabled:
+    'inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200 border-gray-200 text-gray-600 hover:text-black hover:border-black hover:bg-gray-50',
+  pageBase:
+    'inline-flex items-center justify-center w-10 h-10 rounded-lg border text-sm font-medium transition-all duration-200',
+  pageActive: 'bg-black text-white border-black',
+  pageInactive:
+    'border-gray-200 text-gray-700 hover:text-black hover:border-black hover:bg-gray-50',
+};
+
+const getPageUrl = (baseUrl: string, page: number) => {
+  const connector = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${connector}page=${page}`;
+};
+
+const generatePageNumbers = (currentPage: number, totalPages: number) => {
+  const pageNumbers = [];
+
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+
+    return pageNumbers;
+  }
+
+  let startPage = Math.max(1, currentPage - 3);
+  const endPage = Math.min(startPage + 6, totalPages);
+
+  if (endPage < totalPages) {
+    startPage = Math.max(1, endPage - 6);
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
+
+  return pageNumbers;
+};
+
+const PaginationShell = ({
   currentPage,
   totalPages,
   baseUrl,
   className = '',
-  onPageChange,
-}: PaginationProps) {
+}: PaginationShellProps) => {
   if (totalPages <= 1) {
     return null;
   }
 
-  if (!onPageChange) {
-    return (
-      <PaginationShell
-        currentPage={currentPage}
-        totalPages={totalPages}
-        baseUrl={baseUrl}
-        className={className}
-      />
-    );
-  }
-
-  const generatePageNumbers = () => {
-    const pageNumbers = [];
-
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i);
-      }
-    } else {
-      let startPage = Math.max(1, currentPage - 3);
-      const endPage = Math.min(startPage + 6, totalPages);
-
-      if (endPage < totalPages) {
-        startPage = Math.max(1, endPage - 6);
-      }
-
-      for (let i = startPage; i <= endPage; i++) {
-        pageNumbers.push(i);
-      }
-    }
-
-    return pageNumbers;
-  };
-
-  const pageNumbers = generatePageNumbers();
-
-  const handlePageClick = (page: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    onPageChange(page);
-  };
+  const pageNumbers = generatePageNumbers(currentPage, totalPages);
 
   return (
     <nav className={`flex justify-center ${className}`} aria-label="페이지 네비게이션">
@@ -78,8 +76,8 @@ export default function Pagination({
             </svg>
           </span>
         ) : (
-          <button
-            onClick={(e: React.MouseEvent) => handlePageClick(currentPage - 1, e)}
+          <Link
+            href={getPageUrl(baseUrl, currentPage - 1)}
             className={paginationStyles.arrowEnabled}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,22 +88,22 @@ export default function Pagination({
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-          </button>
+          </Link>
         )}
 
         <div className="flex items-center space-x-1">
           {pageNumbers.map(page => {
             return (
-              <button
+              <Link
                 key={page}
+                href={getPageUrl(baseUrl, page)}
                 className={`${paginationStyles.pageBase} ${
                   page === currentPage ? paginationStyles.pageActive : paginationStyles.pageInactive
                 }`}
                 aria-current={page === currentPage ? 'page' : undefined}
-                onClick={(e: React.MouseEvent) => handlePageClick(page, e)}
               >
                 {page}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -117,16 +115,18 @@ export default function Pagination({
             </svg>
           </span>
         ) : (
-          <button
-            onClick={(e: React.MouseEvent) => handlePageClick(currentPage + 1, e)}
+          <Link
+            href={getPageUrl(baseUrl, currentPage + 1)}
             className={paginationStyles.arrowEnabled}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </button>
+          </Link>
         )}
       </div>
     </nav>
   );
-}
+};
+
+export default PaginationShell;

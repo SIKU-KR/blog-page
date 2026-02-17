@@ -1,5 +1,3 @@
-'use client';
-
 import React, { forwardRef } from 'react';
 import { buttonVariants, type ButtonVariants } from '@/shared/ui/variants';
 import { cn } from '@/shared/lib/cn';

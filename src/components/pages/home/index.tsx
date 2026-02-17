@@ -1,14 +1,11 @@
 'use client';
 
-import { useInfinitePosts } from '@/features/posts/hooks';
-import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import Container from '../../ui/Container';
-import HeroSection from '../../sections/HeroSection';
-import BlogSection from '../../sections/BlogSection';
-import Divider from '../../ui/Divider';
-import type { PostListResponse } from '../../../types';
-import Loading from '../../ui/feedback/Loading';
+import { useInfinitePosts } from '@/features/posts/hooks';
+import HomePageShell from '@/components/pages/home/HomePageShell';
+import Container from '@/components/ui/Container';
+import Loading from '@/components/ui/feedback/Loading';
+import type { PostListResponse } from '@/types';
 
 interface HomePageProps {
   initialPosts: PostListResponse;
@@ -16,15 +13,15 @@ interface HomePageProps {
 }
 
 const HomePage = ({ initialPosts }: HomePageProps) => {
-  const router = useRouter();
-
-  // SWR hook for infinite scroll
   const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore, totalElements } =
     useInfinitePosts(initialPosts);
 
   const handleLoadMore = useCallback(() => {
     setSize(prev => prev + 1);
   }, [setSize]);
+
+  const hasMore = !Boolean(isReachingEnd);
+  const loadingMore = Boolean(isLoadingMore);
 
   if (isLoading && !posts.length) {
     return (
@@ -35,26 +32,13 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
   }
 
   return (
-    <Container size="md">
-      <HeroSection
-        title="안녕하세요, SIKU(시쿠)입니다."
-        subtitle="건국대학교 컴퓨터공학부 4학년 재학중이며,\n다양한 경험과 배움을 제것으로 만들고자 포스팅에 기록하고 있습니다."
-        imageSrc="/profile.jpg"
-        profileAlt="프로필 이미지"
-      />
-
-      <Divider variant="border" />
-
-      <div className="py-2">
-        <BlogSection
-          posts={posts}
-          totalPosts={totalElements}
-          onLoadMore={handleLoadMore}
-          hasMore={!isReachingEnd}
-          isLoadingMore={isLoadingMore}
-        />
-      </div>
-    </Container>
+    <HomePageShell
+      posts={posts}
+      totalElements={totalElements}
+      onLoadMore={handleLoadMore}
+      hasMore={hasMore}
+      isLoadingMore={loadingMore}
+    />
   );
 };
 

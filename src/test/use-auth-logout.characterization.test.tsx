@@ -2,11 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider, useAuth } from '@/features/auth';
-
-type AuthSessionResponse = {
-  valid: boolean;
-  userId?: number;
-};
+import type { AuthSessionResponse } from '@/types';
 
 const pushMock = vi.fn();
 const logoutApiMock = vi.fn(() => Promise.resolve());

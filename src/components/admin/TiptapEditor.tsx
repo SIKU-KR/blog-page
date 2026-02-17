@@ -142,6 +142,13 @@ export default function TiptapEditor({
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isExternalUpdate = useRef(false);
+  const lastInitializedSnapshotRef = useRef<{
+    title: string;
+    content: string;
+    summary: string;
+    slug: string;
+    scheduledAt: string | null;
+  } | null>(null);
 
   // Tiptap editor
   const editor = useEditor({
@@ -198,19 +205,6 @@ export default function TiptapEditor({
     },
   });
 
-  // Initialize from props on mount
-  useEffect(() => {
-    const isFutureDate = initialValues.createdAt && new Date(initialValues.createdAt) > new Date();
-    initializeFromProps({
-      title: initialValues.title,
-      content: initialValues.content,
-      summary: initialValues.summary,
-      slug: initialValues.slug,
-      scheduledAt: isFutureDate ? initialValues.createdAt : null,
-    });
-  }, []);
-
-  // slug 생성 함수
   const generateSlug = useCallback((titleText: string): string => {
     return titleText
       .toLowerCase()
@@ -221,12 +215,87 @@ export default function TiptapEditor({
       .replace(/^-|-$/g, '');
   }, []);
 
-  // 초기 slug 생성 (한 번만)
+  const createSnapshotFromInitialValues = useCallback(() => {
+    const isFutureDate = initialValues.createdAt && new Date(initialValues.createdAt) > new Date();
+    const scheduledAt = isFutureDate && initialValues.createdAt ? initialValues.createdAt : null;
+
+    return {
+      title: initialValues.title,
+      content: initialValues.content,
+      summary: initialValues.summary || '',
+      slug: initialValues.slug || '',
+      scheduledAt,
+    };
+  }, [initialValues]);
+
+  const isSameSnapshot = useCallback(
+    (
+      left: {
+        title: string;
+        content: string;
+        summary: string;
+        slug: string;
+        scheduledAt: string | null;
+      } | null,
+      right: {
+        title: string;
+        content: string;
+        summary: string;
+        slug: string;
+        scheduledAt: string | null;
+      }
+    ) => {
+      if (!left) return false;
+
+      return (
+        left.title === right.title &&
+        left.content === right.content &&
+        left.summary === right.summary &&
+        left.slug === right.slug &&
+        left.scheduledAt === right.scheduledAt
+      );
+    },
+    []
+  );
+
   useEffect(() => {
-    if (initialValues.title && !initialValues.slug) {
-      setSlug(generateSlug(initialValues.title));
+    const nextSnapshot = createSnapshotFromInitialValues();
+    const lastSnapshot = lastInitializedSnapshotRef.current;
+
+    if (isSameSnapshot(lastSnapshot, nextSnapshot)) {
+      return;
     }
-  }, []);
+
+    if (lastSnapshot) {
+      const currentSnapshot = getSnapshot();
+      const hasUserEdits = !isSameSnapshot(lastSnapshot, {
+        title: currentSnapshot.title,
+        content: currentSnapshot.content,
+        summary: currentSnapshot.summary || '',
+        slug: currentSnapshot.slug || '',
+        scheduledAt: currentSnapshot.scheduledAt,
+      });
+
+      if (hasUserEdits) {
+        return;
+      }
+    }
+
+    initializeFromProps(nextSnapshot);
+
+    if (nextSnapshot.title && !nextSnapshot.slug) {
+      setSlug(generateSlug(nextSnapshot.title));
+    }
+
+    lastInitializedSnapshotRef.current = nextSnapshot;
+  }, [
+    createSnapshotFromInitialValues,
+    generateSlug,
+    getSnapshot,
+    initializeFromProps,
+    isSameSnapshot,
+    setSlug,
+  ]);
 
   // Store → Tiptap 동기화 (드래프트 로드 등 외부 변경)
   useEffect(() => {

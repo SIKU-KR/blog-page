@@ -1,4 +1,8 @@
+import { AuthSessionContractSchema } from '@/shared/schemas';
+import type { AuthSessionResponse } from '@/types';
+import { logger } from '@/lib/utils/logger';
 import { APIClient, API_ENDPOINTS } from './client';
+import { parseBoundaryContract } from './contractValidation';
 
 const TOKEN_KEY = 'admin_token';
 
@@ -8,12 +12,6 @@ export interface User {
   email: string;
   role: string;
   exp?: number; // JWT 만료 시간 (timestamp)
-}
-
-export interface SessionResponse {
-  valid: boolean;
-  userId?: number;
-  expiresAt?: string;
 }
 
 // Legacy format for backward compatibility
@@ -71,9 +69,9 @@ export class AuthService {
   /**
    * 세션 상태 확인 (JWT 기반)
    */
-  async checkSession(): Promise<SessionResponse> {
+  async checkSession(): Promise<AuthSessionResponse> {
     try {
-      const response = await this.client.request<SessionResponse>({
+      const response = await this.client.request<AuthSessionResponse>({
         url: API_ENDPOINTS.SESSION,
         method: 'GET',
         headers: {
@@ -81,7 +79,13 @@ export class AuthService {
           'Content-Type': 'application/json',
         },
       });
-      return response;
+      const validatedResponse = parseBoundaryContract(
+        response,
+        AuthSessionContractSchema,
+        'AuthService.checkSession'
+      );
+
+      return validatedResponse;
     } catch (error) {
       console.error('세션 확인 오류:', error);
       return { valid: false };

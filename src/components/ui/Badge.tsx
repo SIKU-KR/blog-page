@@ -1,5 +1,3 @@
-'use client';
-
 import React, { forwardRef } from 'react';
 import { badgeVariants, type BadgeVariants } from '@/shared/ui/variants';
 import { cn } from '@/shared/lib/cn';

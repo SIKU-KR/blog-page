@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Share2Icon, CheckIcon } from 'lucide-react';
 import { normalizeSiteUrl } from '@/lib/site';
 import Button from '@/components/ui/Button';
@@ -12,22 +12,14 @@ interface ShareButtonProps {
 
 const ShareButton: React.FC<ShareButtonProps> = ({ className, canonicalUrl }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState('');
-
-  useEffect(() => {
-    // canonicalUrl이 제공되면 우선 사용, 그렇지 않으면 현재 URL 사용
-    if (canonicalUrl) {
-      setCurrentUrl(normalizeSiteUrl(canonicalUrl));
-      return;
-    }
-
-    // 클라이언트 사이드에서만 window.location.href에 접근 가능
-    if (typeof window !== 'undefined') {
-      setCurrentUrl(normalizeSiteUrl(window.location.href));
-    }
-  }, [canonicalUrl]);
 
   const handleShare = async () => {
+    const currentUrl = canonicalUrl
+      ? normalizeSiteUrl(canonicalUrl)
+      : typeof window !== 'undefined'
+        ? normalizeSiteUrl(window.location.href)
+        : '';
+
     if (!currentUrl) return;
 
     try {

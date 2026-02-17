@@ -16,53 +16,59 @@ export function useDraftManagement(currentDraft: DraftSnapshot) {
   const latestDraftRef = useRef<DraftSnapshot>(currentDraft);
   const previousDraftJSONRef = useRef<string | null>(null);
 
-  // 현재 draft 상태 동기화
-  useEffect(() => {
-    latestDraftRef.current = currentDraft;
-  }, [currentDraft]);
+  latestDraftRef.current = currentDraft;
+
+  const handleAutoSave = useCallback(() => {
+    const snapshot = latestDraftRef.current;
+    const normalizedTitle = snapshot.title.trim();
+    const hasContent =
+      normalizedTitle || snapshot.content.trim() || snapshot.summary.trim() || snapshot.slug.trim();
+
+    if (!hasContent) return;
+
+    try {
+      const serializedSnapshot = JSON.stringify(snapshot);
+      if (serializedSnapshot === previousDraftJSONRef.current) return;
+
+      const now = new Date();
+      const timestamp = now.toISOString();
+      const draftTitle = normalizedTitle || '제목 없음';
+
+      const autoDraft: Draft = {
+        ...snapshot,
+        id: 'auto-draft',
+        title: draftTitle,
+        timestamp,
+        displayName: `${now.toLocaleString()} - ${draftTitle}`,
+        isAutoSave: true,
+      };
+
+      draftStorage.addDraft(autoDraft);
+      previousDraftJSONRef.current = serializedSnapshot;
+      setLastAutoSavedAt(now);
+
+      logger.debug('자동 임시저장 완료', { draftTitle });
+    } catch (error) {
+      logger.error('자동 임시저장 오류', error);
+    }
+  }, []);
 
   // 자동 저장 로직
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      const snapshot = latestDraftRef.current;
-      const normalizedTitle = snapshot.title.trim();
-      const hasContent =
-        normalizedTitle ||
-        snapshot.content.trim() ||
-        snapshot.summary.trim() ||
-        snapshot.slug.trim();
+    let intervalId: number | null = null;
 
-      if (!hasContent) return;
+    try {
+      intervalId = window.setInterval(handleAutoSave, AUTO_SAVE_INTERVAL);
+    } catch (error) {
+      logger.error('자동 임시저장 인터벌 설정 오류', error);
+    }
 
-      try {
-        const serializedSnapshot = JSON.stringify(snapshot);
-        if (serializedSnapshot === previousDraftJSONRef.current) return;
-
-        const now = new Date();
-        const timestamp = now.toISOString();
-        const draftTitle = normalizedTitle || '제목 없음';
-
-        const autoDraft: Draft = {
-          ...snapshot,
-          id: 'auto-draft',
-          title: draftTitle,
-          timestamp,
-          displayName: `${now.toLocaleString()} - ${draftTitle}`,
-          isAutoSave: true,
-        };
-
-        draftStorage.addDraft(autoDraft);
-        previousDraftJSONRef.current = serializedSnapshot;
-        setLastAutoSavedAt(now);
-
-        logger.debug('자동 임시저장 완료', { draftTitle });
-      } catch (error) {
-        logger.error('자동 임시저장 오류', error);
+    return () => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
       }
-    }, AUTO_SAVE_INTERVAL);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
+    };
+  }, [handleAutoSave]);
 
   // 마지막 자동저장 시간 초기화
   useEffect(() => {
