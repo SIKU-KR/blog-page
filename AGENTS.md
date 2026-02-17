@@ -1,170 +1,182 @@
 # AGENTS.md
 
-Instructions for AI coding agents operating in this repository.
+Guide for coding agents operating in this repository.
 
-## Project Overview
+## Project Snapshot
 
-Next.js 15 blog frontend (bumsiku.kr) using React 19, TypeScript, TailwindCSS.
-Communicates with backend API (`https://api.bumsiku.kr`) via BFF pattern (Next.js API routes).
-Korean-only blog (no i18n).
+- Stack: Next.js App Router, React 19, TypeScript, TailwindCSS
+- Package manager: npm
+- State: SWR (server state), Zustand (editor/local state)
+- API helpers: `src/lib/utils/response.ts`
+- Validation: Zod schemas + custom validation utilities
 
-## Build / Lint / Format Commands
+## Canonical Commands
+
+Run from repo root: `/Users/peter_mac/Documents/blog`
+
+### Development
 
 ```bash
-npm run dev              # HTTP dev server (localhost:3000)
-npm run dev:https        # HTTPS dev server (for auth cookie testing)
-npm run build            # TypeScript type-check + production build
-npm run lint             # ESLint (next/core-web-vitals + next/typescript)
-npm run format           # Prettier auto-fix (src/**/*.{js,jsx,ts,tsx})
-npm run format:check     # Prettier check only
+npm run dev
+npm run dev:https
 ```
 
-There are no tests. No test framework is configured. `npm run build` is the primary verification command (runs type-checking).
+- `dev`: local webpack dev server
+- `dev:https`: local HTTPS dev server (cookie/auth testing)
 
-## Source Layout
+### Build / Run
 
+```bash
+npm run build
+npm run start
 ```
+
+- `build`: production build (includes TS checks via Next build)
+- `start`: serve production build
+
+### Lint / Format
+
+```bash
+npm run lint
+npm run format
+npm run format:check
+```
+
+- Script scope: `src/**/*.{js,jsx,ts,tsx}`
+
+### Test (Vitest)
+
+```bash
+npm run test
+npm run test:coverage
+```
+
+Single test file:
+
+```bash
+npm run test -- src/test/alias.test.tsx
+```
+
+Single test by name:
+
+```bash
+npm run test -- src/test/alias.test.tsx -t "resolves @ alias"
+```
+
+Vitest details:
+
+- Config: `vitest.config.ts`
+- Include: `src/**/*.test.{ts,tsx}`
+- Setup: `src/test/setup.ts`
+
+## Repository Layout
+
+```text
 src/
-  app/                  # App Router: pages, API routes, layouts
-    (blog)/             # Route group for blog
-    admin/              # Admin dashboard (protected)
-    api/                # API route handlers (posts, auth, admin, upload, health, sitemap)
-  features/             # Feature modules (posts, auth) - self-contained
-  components/           # Shared UI components (admin/, layout/, ui/, pages/, sections/)
-  shared/               # Cross-cutting: Zod schemas, CVA variants, SWR config, cn()
-  lib/                  # API clients, services, DB (Drizzle), utilities
-  hooks/                # Global custom hooks
-  types/                # Global type definitions
+  app/          # App Router pages, layouts, API routes
+  components/   # Shared and page-level UI
+  features/     # Feature modules (auth, posts)
+  hooks/        # Reusable hooks
+  lib/          # API client, services, server utilities
+  shared/       # Shared schemas, config, helpers
+  test/         # Vitest tests and setup
+  types/        # Shared TypeScript types
 ```
 
-## Code Style
+High-signal paths:
 
-### Formatting (Prettier - `.prettierrc`)
+- `src/app/api/**/route.ts`
+- `src/lib/utils/response.ts`
+- `src/lib/services/*`
+- `src/features/posts/hooks/*`
+- `src/features/posts/store/editorStore.ts`
 
-- Single quotes, semicolons, 2-space indent
-- Trailing commas: `es5`
-- Print width: 100
-- Arrow parens: avoid (omit when single param)
-- Bracket spacing: true
+## Code Style Guidelines
 
-### TypeScript
+### Formatting (`.prettierrc`)
 
-- Strict mode enabled (`tsconfig.json`)
-- Path alias: `@/*` maps to `./src/*` -- always use `@/` imports, never relative `../../`
-- Use `const` arrow functions, not `function` declarations: `const toggle = () => {}`
-- Derive types from Zod schemas via `z.infer<>` -- do not create standalone `interface` without a schema
-- ESLint relaxations: `no-explicit-any: off`, `no-unused-vars: off`, `exhaustive-deps: off`
+- `semi: true`
+- `singleQuote: true`
+- `tabWidth: 2`
+- `trailingComma: "es5"`
+- `printWidth: 100`
+- `arrowParens: "avoid"`
 
-### Import Order (no blank lines between groups)
+### TypeScript (`tsconfig.json`)
 
-1. Directives: `'use client'` or `'use server'` (line 1)
-2. React core: `import { useState, useEffect } from 'react'`
-3. Next.js built-ins: `import Link from 'next/link'`
-4. Third-party packages: `lucide-react`, `swr`, `zod`, etc.
-5. Internal `@/` imports: types, shared, components, hooks, lib
-6. Relative imports: `./SiblingComponent`
+- `strict: true`
+- Path alias: `@/* -> ./src/*`
+- `moduleResolution: "bundler"`
+- Prefer explicit types at API/service/shared boundaries
 
-### Naming
+### Imports
 
-- Event handlers: `handle` prefix (`handleClick`, `handleKeyDown`, `handleSubmit`)
-- Hooks: `use` prefix (`useAuthGuard`, `useInfinitePosts`)
-- Components: PascalCase, default export, file named same as component
-- Utilities/hooks: camelCase, named exports
+Observed order in app/component files:
 
-### Components and Styling
+1. React / Next imports
+2. Third-party packages
+3. Internal `@/` imports
+4. Relative imports (if needed)
+   Guidelines:
 
-- Tailwind classes only -- no inline styles, no CSS modules (exception: `globals.css`)
-- Use `cn()` from `@/shared/lib/cn` (clsx + tailwind-merge) for conditional classes
-- CVA variants live in `shared/ui/variants/` -- use `buttonVariants`, `inputVariants`, etc.
-- Icons: `lucide-react` exclusively
-- Accessibility: include `tabIndex`, `aria-label`, `onKeyDown` handlers on interactive elements
-- Use early returns for readability
+- Prefer `@/` for cross-directory imports
+- Keep `'use client'` or `'use server'` as first statement when required
 
-### Barrel Exports
+### Naming and Structure
 
-- Every feature subdirectory and shared module has `index.ts`
-- Components: `export { default as PostItem } from './PostItem'`
-- Hooks/utilities: `export * from './useInfinitePosts'`
+- Components: PascalCase
+- Hooks: `useXxx`
+- Event handlers: `handleXxx`
+- Store actions: verb-first (`setTitle`, `openPublishModal`, `reset`)
+- Route handlers: `export const GET/POST/PATCH/DELETE`
+- Prefer focused feature hooks/services over ad-hoc page logic
 
-## Architecture Patterns
+## API and Error Handling
 
-### Feature Modules (`src/features/`)
+Established route styles:
 
-Each feature (posts, auth) is a self-contained module with components/, hooks/, store/.
-**Cross-feature imports are prohibited** -- share through `src/shared/`.
+- Wrapper style: `withErrorHandling(async (...) => ...)`
+- Manual style: `try/catch` + `errorResponse(...)`
+  Reuse helpers from `src/lib/utils/response.ts`:
+- `successResponse(data, status?)`
+- `errorResponse(message, status?)`
+  Current error response shape:
 
-### API Client (`src/lib/api/`)
-
-Singleton `APIClient` with dual Axios instances:
-
-- `publicClient` (30s timeout, no auth)
-- `adminClient` (60s timeout, JWT auto-injected via interceptor)
-
-Import the unified api object:
-
-```typescript
-import { api } from '@/lib/api';
-// api.posts, api.auth, api.ai, api.embedding, api.images, api.adminAuth
+```json
+{
+  "success": false,
+  "data": null,
+  "error": { "code": 400, "message": "..." }
+}
 ```
 
-### Server Services (`src/lib/services/`)
+Validation notes:
 
-Server-side business logic called from API routes: PostService, AIService, EmbeddingService,
-ImageService, AuthService, SitemapService. DB: Drizzle ORM + PostgreSQL (Supabase).
+- Custom errors: `src/lib/utils/validation.ts`
+- `withErrorHandling` maps known validation/auth errors to HTTP status
 
-### State Management
+## Lint Configuration Reality
 
-- **SWR** for server state (global config: `src/shared/lib/swr.ts`)
-  - Query hooks: `features/posts/hooks/`
-  - Always use mutation hooks (useCreatePost, useUpdatePost) -- never call `api.posts.create()` directly (SWR cache won't invalidate)
-- **Zustand** for local UI state (`features/posts/store/editorStore.ts`)
+- Base extends: `next/core-web-vitals` + `next/typescript`
+- Disabled rules in `eslint.config.mjs`:
+  - `@typescript-eslint/no-explicit-any`
+  - `@typescript-eslint/no-unused-vars`
+  - `react-hooks/exhaustive-deps`
+- Guidance: keep code typed and intentional even with relaxed lint rules
 
-### Error Handling in API Routes
+## Runtime Notes
 
-Custom error classes in `src/lib/utils/validation.ts`: `ValidationError`, `NotFoundError`, `UnauthorizedError`.
+- `reactStrictMode: true`
+- Production strips `console.*` except `error` and `warn`
+- Server Actions body limit: `20mb`
+- Remote image host includes `*.supabase.co`
+- Redirect: `/posts/:slug* -> /:slug*`
 
-Preferred: wrap handlers with `withErrorHandling()` HOF from `src/lib/utils/response.ts`:
+## Cursor / Copilot Rules Check
 
-```typescript
-export const GET = withErrorHandling(async request => {
-  const data = await SomeService.getData();
-  return successResponse(data);
-});
-```
+Checked and not found:
 
-Response format:
-
-- Success: `{ success: true, data: T, error: null }`
-- Error: `{ success: false, data: null, error: { code: string, message: string } }`
-
-For complex routes, manual try/catch with `instanceof` checks is acceptable.
-
-### Authentication
-
-Client-side JWT stored in `localStorage` key `'admin_token'`. Parsed with `jose`.
-Admin routes protected by `useAuthGuard` hook (redirects to `/login` on missing/expired token).
-401 responses trigger automatic logout via SWR global error handler.
-
-### Routing
-
-- `app/(blog)/page.tsx` -- Home (infinite scroll post list)
-- `app/(blog)/[slug]/page.tsx` -- Post detail
-- `app/admin/` -- Admin dashboard (CRUD, vectors, write/edit)
-- Post URLs are `/:slug` (not `/posts/:slug` -- 301 redirect configured in `next.config.mjs`)
-
-## Common Pitfalls
-
-- Do NOT import across features -- use `shared/` for cross-cutting concerns
-- Do NOT call api methods directly for mutations -- use SWR mutation hooks
-- Do NOT define types with bare `interface` -- use Zod schemas with `z.infer<>`
-- Do NOT use CSS/style attributes -- use Tailwind classes
-- Do NOT leave TODO comments or placeholder code
-- Post URLs are `/:slug`, not `/posts/:slug`
-- `NEXT_PUBLIC_` prefix required for client-accessible env vars
-
-## Environment
-
-- `NEXT_PUBLIC_API_URL=https://api.bumsiku.kr`
-- Production: `removeConsole` strips all console.\* calls
-- `serverActions.bodySizeLimit`: 20MB (image uploads)
-- Supabase Storage image domain: `*.supabase.co`
+- `.cursor/rules/`
+- `.cursorrules`
+- `.github/copilot-instructions.md`
+  If these are added later, treat them as higher-priority local instructions.
