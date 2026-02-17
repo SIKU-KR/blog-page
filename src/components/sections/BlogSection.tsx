@@ -5,6 +5,7 @@ import ErrorMessage from '../ui/feedback/ErrorMessage';
 
 interface BlogSectionProps {
   posts?: PostSummary[];
+  totalPosts?: number;
   className?: string;
   onPageChange?: (page: number) => void;
 
@@ -22,6 +23,7 @@ interface BlogSectionProps {
 
 const BlogSection = memo(function BlogSection({
   posts,
+  totalPosts,
   className = '',
   onPageChange,
   pagination,
@@ -41,6 +43,7 @@ const BlogSection = memo(function BlogSection({
     <section className={`py-2 ${className}`}>
       <PostList
         posts={posts}
+        totalPosts={totalPosts}
         currentPage={pagination?.currentPage}
         totalPages={pagination?.totalPages}
         onPageChange={onPageChange}

@@ -19,7 +19,7 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
   const router = useRouter();
 
   // SWR hook for infinite scroll
-  const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore } =
+  const { posts, isLoading, size, setSize, isReachingEnd, isLoadingMore, totalElements } =
     useInfinitePosts(initialPosts);
 
   const handleLoadMore = useCallback(() => {
@@ -48,6 +48,7 @@ const HomePage = ({ initialPosts }: HomePageProps) => {
       <div className="py-2">
         <BlogSection
           posts={posts}
+          totalPosts={totalElements}
           onLoadMore={handleLoadMore}
           hasMore={!isReachingEnd}
           isLoadingMore={isLoadingMore}

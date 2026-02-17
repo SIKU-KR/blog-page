@@ -9,6 +9,7 @@ import Loading from '@/components/ui/feedback/Loading';
 
 interface PostListProps {
   posts: PostSummary[];
+  totalPosts?: number;
   currentPage?: number;
   totalPages?: number;
   baseUrl?: string;
@@ -30,6 +31,7 @@ interface PostListProps {
  */
 const PostList = memo(function PostList({
   posts,
+  totalPosts = 0,
   currentPage = 1,
   totalPages = 1,
   baseUrl = '/',
@@ -48,6 +50,8 @@ const PostList = memo(function PostList({
 
   return (
     <div className="max-w-3xl">
+      <p className="mb-4 text-sm text-gray-500">총 {totalPosts}개의 게시글</p>
+
       {posts.length > 0 ? (
         <>
           {posts.map(post => (
@@ -66,30 +70,28 @@ const PostList = memo(function PostList({
                 </div>
               )}
             </div>
+          ) : /* Pagination Fallback */
+          footerRight ? (
+            <div className="mt-6 grid grid-cols-3 items-center">
+              <div />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                baseUrl={baseUrl}
+                onPageChange={onPageChange}
+                className="mt-0 justify-self-center"
+              />
+              <div className="justify-self-end flex items-center gap-3">{footerRight}</div>
+            </div>
           ) : (
-            /* Pagination Fallback */
-            footerRight ? (
-              <div className="mt-6 grid grid-cols-3 items-center">
-                <div />
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  baseUrl={baseUrl}
-                  onPageChange={onPageChange}
-                  className="mt-0 justify-self-center"
-                />
-                <div className="justify-self-end flex items-center gap-3">{footerRight}</div>
-              </div>
-            ) : (
-              <div className="mt-8">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  baseUrl={baseUrl}
-                  onPageChange={onPageChange}
-                />
-              </div>
-            )
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                baseUrl={baseUrl}
+                onPageChange={onPageChange}
+              />
+            </div>
           )}
         </>
       ) : (
