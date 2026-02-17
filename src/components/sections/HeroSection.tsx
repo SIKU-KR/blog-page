@@ -18,6 +18,8 @@ export default function HeroSection({
   profileAlt = 'Profile Image',
   className = '',
 }: HeroSectionProps) {
+  const normalizedSubtitle = subtitle.replace(/\\n/g, '\n');
+
   return (
     <section className={`py-8 md:py-12 ${className}`}>
       <div className="flex flex-col md:flex-row items-center gap-8">
@@ -26,15 +28,17 @@ export default function HeroSection({
         {/* 자기소개 */}
         <div className="flex flex-col space-y-6 text-center md:text-left">
           <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-              {title}
-            </h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{title}</h1>
             <p className="text-lg md:text-xl text-gray-600 whitespace-pre-line leading-relaxed">
-              {subtitle}
+              {normalizedSubtitle}
             </p>
 
             <div className="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
-              <Link href="/resume">
+              <Link
+                href="https://drive.google.com/file/d/1j3u_5x1ZJXm8jRq34Pf9RhuZpyop8KoG/view?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button variant="primary" size="md">
                   Resume
                 </Button>
