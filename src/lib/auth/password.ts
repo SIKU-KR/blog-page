@@ -35,10 +35,7 @@ export async function verifyPassword(password: string): Promise<boolean> {
 /**
  * Verify admin credentials
  */
-export async function verifyAdminCredentials(
-  username: string,
-  password: string
-): Promise<boolean> {
+export async function verifyAdminCredentials(username: string, password: string): Promise<boolean> {
   const adminUsername = process.env.ADMIN_USERNAME;
   if (!adminUsername) {
     throw new Error('ADMIN_USERNAME environment variable is not set');

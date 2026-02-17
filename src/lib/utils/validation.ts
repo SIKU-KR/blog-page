@@ -33,10 +33,7 @@ export class UnauthorizedError extends Error {
 /**
  * Validate pagination parameters
  */
-export function validatePagination(params: {
-  page?: number;
-  size?: number;
-}): string[] {
+export function validatePagination(params: { page?: number; size?: number }): string[] {
   const errors: string[] = [];
   const { page, size } = params;
 

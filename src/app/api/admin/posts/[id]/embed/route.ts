@@ -7,10 +7,7 @@ import { embeddingService } from '@/lib/services';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 import { parseId } from '@/lib/utils/validation';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const postId = parseId(id);

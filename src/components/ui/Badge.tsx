@@ -11,11 +11,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement>, BadgeVariant
 const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
   ({ className, variant, size, children, ...props }, ref) => {
     return (
-      <span
-        ref={ref}
-        className={cn(badgeVariants({ variant, size }), className)}
-        {...props}
-      >
+      <span ref={ref} className={cn(badgeVariants({ variant, size }), className)} {...props}>
         {children}
       </span>
     );

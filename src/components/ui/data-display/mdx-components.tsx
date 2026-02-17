@@ -1,7 +1,7 @@
 import type { MDXComponents } from 'mdx/types';
 
 export const sharedMdxComponents: MDXComponents = {
-  code: (props) => {
+  code: props => {
     const { children, ...rest } = props;
     // rehype-pretty-code가 처리한 코드 블록(data-theme)은 그대로 통과
     if ('data-theme' in rest) {

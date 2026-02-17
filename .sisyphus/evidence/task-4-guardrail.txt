@@ -1,0 +1,2 @@
+### 3. Non-Goals
+- **Auth Model Stability**: Do NOT change the current authentication storage model. The `admin_token` MUST remain in `localStorage`.

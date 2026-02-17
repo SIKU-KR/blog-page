@@ -160,4 +160,3 @@ export const compressImage = async (
 
   return compressedFile;
 };
-

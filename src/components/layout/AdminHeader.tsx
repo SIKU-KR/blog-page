@@ -1,20 +1,17 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/features/auth';
 import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '@/features/auth';
 
 export default function AdminHeader() {
-  const router = useRouter();
   const pathname = usePathname();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    document.cookie = 'JSESSIONID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'isLoggedIn=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/login');
+    logout();
   };
 
   const menuItems = [

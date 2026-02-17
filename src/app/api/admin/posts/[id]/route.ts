@@ -7,10 +7,7 @@ import { postService, embeddingService } from '@/lib/services';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 import { ValidationError, NotFoundError, parseId, validatePostData } from '@/lib/utils/validation';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const postId = parseId(id);
@@ -32,10 +29,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const postId = parseId(id);

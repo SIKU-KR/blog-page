@@ -34,7 +34,7 @@ export default function Loading() {
 
         {/* Post Cards Skeleton */}
         <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
               <div className="space-y-3">
                 <div className="h-6 bg-gray-200 rounded w-3/4" />

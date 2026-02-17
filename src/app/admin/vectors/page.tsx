@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import AdminErrorState from '@/components/admin/common/AdminErrorState';
 import AdminInfoCard from '@/components/admin/common/AdminInfoCard';
 import AdminLoadingState from '@/components/admin/common/AdminLoadingState';
@@ -9,7 +10,6 @@ import AdminPagination from '@/components/admin/common/AdminPagination';
 import BulkEmbeddingResultPanel from '@/components/admin/vectors/BulkEmbeddingResultPanel';
 import VectorsPostsTable from '@/components/admin/vectors/VectorsPostsTable';
 import { api } from '@/lib/api/index';
-import { PostSummary } from '@/types';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -21,10 +21,6 @@ export default function VectorsManagementPage() {
   const { addToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
 
-  const [posts, setPosts] = useState<PostSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalPosts, setTotalPosts] = useState(0);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
 
@@ -33,24 +29,19 @@ export default function VectorsManagementPage() {
   const [bulkEmbeddingInProgress, setBulkEmbeddingInProgress] = useState(false);
   const [bulkResult, setBulkResult] = useState<BulkEmbeddingResult | null>(null);
 
-  const fetchPosts = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.posts.getList(page, pageSize);
-      setPosts(response.content);
-      setTotalPosts(response.totalElements);
-      setError(null);
-    } catch (err) {
-      setError('게시글 정보를 불러오는 중 오류가 발생했습니다.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+  const { data, error, isLoading, isValidating } = useSWR(
+    ['posts', page, pageSize],
+    () => api.posts.getList(page, pageSize),
+    {
+      keepPreviousData: true,
+      revalidateOnFocus: false,
     }
-  }, [page, pageSize]);
+  );
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+  const posts = data?.content ?? [];
+  const totalPosts = data?.totalElements ?? 0;
+  const errorMessage = error ? '게시글 정보를 불러오는 중 오류가 발생했습니다.' : null;
+  const showLoading = isLoading || isValidating;
 
   const handleEmbedPost = async (postId: number) => {
     setEmbeddingInProgress(postId);
@@ -149,11 +140,11 @@ export default function VectorsManagementPage() {
 
       {bulkResult && <BulkEmbeddingResultPanel result={bulkResult} />}
 
-      {isLoading && <AdminLoadingState />}
+      {showLoading && <AdminLoadingState />}
 
-      {error && <AdminErrorState message={error} />}
+      {errorMessage && <AdminErrorState message={errorMessage} />}
 
-      {!isLoading && !error && (
+      {!showLoading && !errorMessage && (
         <>
           <VectorsPostsTable
             posts={posts}

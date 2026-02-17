@@ -67,7 +67,7 @@ export function useDraftManagement(currentDraft: DraftSnapshot) {
   // 마지막 자동저장 시간 초기화
   useEffect(() => {
     const drafts = draftStorage.getDrafts();
-    const autoDraft = drafts.find((draft) => draft.isAutoSave && draft.timestamp);
+    const autoDraft = drafts.find(draft => draft.isAutoSave && draft.timestamp);
     if (autoDraft) {
       setLastAutoSavedAt(new Date(autoDraft.timestamp));
     }
@@ -108,4 +108,3 @@ export function useDraftManagement(currentDraft: DraftSnapshot) {
     deleteAllDrafts: useCallback(() => draftStorage.clearAll(), []),
   };
 }
-

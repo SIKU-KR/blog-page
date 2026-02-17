@@ -38,12 +38,10 @@ export default function LoginPage() {
 
     try {
       // Call new JWT-based login API
-      const response = await api.adminAuth.login({
+      await api.adminAuth.login({
         username: data.username,
         password: data.password,
       });
-
-      console.log('[LoginPage] Login successful, token received');
 
       // Token is automatically saved to localStorage by api.adminAuth.login()
 

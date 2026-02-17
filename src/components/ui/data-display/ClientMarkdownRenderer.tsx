@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { proseClasses } from './prose-classes';
 import { compileMarkdownAction } from '@/lib/actions/markdown';
 
@@ -15,11 +15,18 @@ export default function ClientMarkdownRenderer({
 }: ClientMarkdownRendererProps) {
   const [html, setHtml] = useState('');
   const [isPending, startTransition] = useTransition();
+  const latestRequestId = useRef(0);
 
   useEffect(() => {
+    const requestId = latestRequestId.current + 1;
+    latestRequestId.current = requestId;
+
     startTransition(async () => {
       const result = await compileMarkdownAction(content);
-      setHtml(result);
+
+      if (requestId === latestRequestId.current) {
+        setHtml(result);
+      }
     });
   }, [content]);
 

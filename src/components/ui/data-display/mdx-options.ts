@@ -24,4 +24,6 @@ export const sharedMdxOptions = {
     [rehypePrettyCode, { theme: 'github-light' }],
     [rehypeSanitize, customSanitizeSchema],
   ],
-} satisfies NonNullable<Parameters<typeof import('next-mdx-remote/rsc').compileMDX>[0]['options']>['mdxOptions'];
+} satisfies NonNullable<
+  Parameters<typeof import('next-mdx-remote/rsc').compileMDX>[0]['options']
+>['mdxOptions'];

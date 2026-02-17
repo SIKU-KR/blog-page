@@ -51,7 +51,5 @@ export function validateDraft(data: unknown): Draft | null {
 export function validateDraftList(data: unknown): Draft[] {
   if (!Array.isArray(data)) return [];
 
-  return data
-    .map(item => validateDraft(item))
-    .filter((draft): draft is Draft => draft !== null);
+  return data.map(item => validateDraft(item)).filter((draft): draft is Draft => draft !== null);
 }

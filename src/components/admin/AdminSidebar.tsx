@@ -20,9 +20,7 @@ export default function AdminSidebar() {
         <nav className="flex flex-col gap-1">
           {menuItems.map(item => {
             const isActive =
-              item.path === '/admin'
-                ? pathname === '/admin'
-                : pathname.startsWith(item.path);
+              item.path === '/admin' ? pathname === '/admin' : pathname.startsWith(item.path);
 
             return (
               <Link

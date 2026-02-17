@@ -1,0 +1,4 @@
+### 1. Admin-Only Redirect Scope
+- **Key Prefix Scope**: The SWR key (request URL) starts with `/api/admin`.
+- **Pathname Scope**: The current browser location (`window.location.pathname`) starts with `/admin`.
+2. If true, verify if the request is in the "Admin-Only Redirect Scope".

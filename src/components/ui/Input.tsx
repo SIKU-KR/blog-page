@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 import { inputVariants, type InputVariants } from '@/shared/ui/variants';
 import { cn } from '@/shared/lib/cn';
 
@@ -9,7 +9,8 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement>, InputV
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, variant, inputSize, ...props }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substring(2, 9)}`;
+    const fallbackId = useId();
+    const inputId = id ?? fallbackId;
     const variantToUse = error ? 'error' : variant;
 
     return (

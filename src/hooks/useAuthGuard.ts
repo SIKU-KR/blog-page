@@ -15,7 +15,6 @@ export function useAuthGuard() {
     const token = getToken();
 
     if (!token || isTokenExpired(token)) {
-      console.log('[Auth Guard] No valid token, redirecting to login');
       router.push('/login');
     }
   }, [router]);

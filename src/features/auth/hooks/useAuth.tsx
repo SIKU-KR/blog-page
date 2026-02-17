@@ -1,5 +1,7 @@
+'use client';
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { setToken, parseJwt, User } from '@/lib/api/auth';
+import { clearToken, parseJwt, setToken, User } from '@/lib/api/auth';
 import { api } from '@/lib/api/index';
 import { useRouter } from 'next/navigation';
 
@@ -21,13 +23,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   // 세션 데이터 정리
-  const clearSessionData = () => {
+  const clearSessionData = useCallback(() => {
+    clearToken();
     if (typeof window !== 'undefined') {
       document.cookie = 'JSESSIONID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       document.cookie = 'isLoggedIn=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     }
     setUser(null);
-  };
+  }, []);
 
   // 로그아웃 함수
   const logout = useCallback(() => {
@@ -42,12 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clearSessionData();
           router.push('/login');
         });
-    } catch (error) {
-      console.error('로그아웃 오류:', error);
+    } catch {
       clearSessionData();
       router.push('/login');
     }
-  }, [router]);
+  }, [clearSessionData, router]);
 
   // 인증 상태 확인 함수
   const checkAuthStatus = useCallback(async (): Promise<boolean> => {
@@ -67,33 +69,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
       return false;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_error) {
+    } catch {
       clearSessionData();
       return false;
     }
-  }, []);
+  }, [clearSessionData]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    let isMounted = true;
+
     const init = async () => {
-      console.log('[AuthProvider] Starting initialization...');
       setIsLoading(true);
       try {
-        // TEMPORARILY DISABLED: API call might be causing infinite reload
-        // const authenticated = await checkAuthStatus();
-        // console.log('[AuthProvider] Auth check result:', authenticated);
-        console.log('[AuthProvider] Skipping checkAuthStatus for debugging');
+        await checkAuthStatus();
       } finally {
-        setIsLoading(false);
-        console.log('[AuthProvider] Initialization complete');
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+    void init();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [checkAuthStatus]);
 
   const login = (token: string) => {
     setToken(token);
@@ -105,13 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithSession = async (username: string, password: string) => {
-    try {
-      await api.auth.login(username, password);
-      await checkAuthStatus();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_error) {
-      throw _error;
-    }
+    await api.auth.login(username, password);
+    await checkAuthStatus();
   };
 
   return (

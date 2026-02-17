@@ -14,9 +14,7 @@ export default function AdminTable<T extends { id?: string | number }>({
 }: AdminTableProps<T>) {
   return (
     <div>
-      {title && (
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>
-      )}
+      {title && <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>}
       <DataTable {...tableProps} />
     </div>
   );

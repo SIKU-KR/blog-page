@@ -24,10 +24,7 @@ export default function Navigation({
 
   return (
     <nav
-      className={cn(
-        'flex gap-1',
-        direction === 'vertical' ? 'flex-col' : 'flex-row items-center'
-      )}
+      className={cn('flex gap-1', direction === 'vertical' ? 'flex-col' : 'flex-row items-center')}
     >
       {items.map(item => (
         <Link

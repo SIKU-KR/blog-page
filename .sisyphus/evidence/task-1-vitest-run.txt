@@ -1,0 +1,14 @@
+# Command: npm run test
+
+> my-next-app@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.4 /Users/peter_mac/Documents/blog
+
+ ✓ src/test/alias.test.tsx (1 test) 18ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  11:48:10
+   Duration  927ms (transform 31ms, setup 64ms, collect 89ms, tests 18ms, environment 365ms, prepare 63ms)

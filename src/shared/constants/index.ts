@@ -5,7 +5,8 @@
 export const SOCIAL_LINKS = {
   github: 'https://github.com/SIKU-KR',
   linkedin: 'https://linkedin.com/in/siku-kr',
-  notion: 'https://bam-siku.notion.site/Bumshik-Park-Software-Engineer-1458cfce4e32807b942bc95106e27ab8',
+  notion:
+    'https://bam-siku.notion.site/Bumshik-Park-Software-Engineer-1458cfce4e32807b942bc95106e27ab8',
   email: 'peter012677@naver.com',
 } as const;
 
