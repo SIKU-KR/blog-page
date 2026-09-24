@@ -2,6 +2,9 @@
   "name": "my-next-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' next dev --webpack",
     "dev:https": "NODE_OPTIONS='--no-deprecation' next dev --webpack --experimental-https",
@@ -65,7 +68,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "19.2.10",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^3.2.7",
