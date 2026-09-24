@@ -1,0 +1,140 @@
+name: Dependency security fix
+
+on:
+  schedule:
+    - cron: '0 1 * * 1' # 매주 월요일 10:00 KST
+  workflow_dispatch:
+
+concurrency:
+  group: dependency-security-fix
+
+env:
+  PR_BRANCH: deps/security-auto
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write # Claude GitHub App 토큰 발급(OIDC)
+    outputs:
+      vulnerable: ${{ steps.audit.outputs.vulnerable }}
+
+    steps:
+      # push는 Claude App 토큰으로만 하도록 기본 GITHUB_TOKEN 자격 증명을 남기지 않는다.
+      # (GITHUB_TOKEN으로 push하면 CI가 트리거되지 않아 자동 머지가 막힌다.)
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit
+        id: audit
+        run: |
+          if npm audit --audit-level=moderate > "$RUNNER_TEMP/npm-audit.txt"; then
+            echo "vulnerable=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "vulnerable=true" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$RUNNER_TEMP/npm-audit.txt"
+
+      # 리뷰 대기 중인 보안 PR이 있으면 같은 작업을 반복하지 않는다. 충돌 난 PR만 다시 만든다.
+      - name: Check pending PR
+        id: pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mergeable=$(gh pr list --head "$PR_BRANCH" --state open --json mergeable --jq '.[0].mergeable // empty')
+          if [ -n "$mergeable" ] && [ "$mergeable" != 'CONFLICTING' ]; then
+            echo "pending=true" >> "$GITHUB_OUTPUT"
+            echo "리뷰 대기 중인 $PR_BRANCH PR이 있어 이번 실행은 건너뜁니다."
+          else
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fix vulnerabilities with Claude
+        if: steps.audit.outputs.vulnerable == 'true' && steps.pending.outputs.pending != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Pro/Max 구독: `claude setup-token`으로 발급. API 키를 쓰려면 anthropic_api_key로 교체.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            이 저장소의 npm 의존성 보안 취약점을 해결하는 자동화 작업이다. AGENTS.md 규칙을 따른다.
+            `npm audit` 결과는 `${{ runner.temp }}/npm-audit.txt`에 있다.
+
+            1. `gh pr list --state open --author "app/dependabot"`로 열린 Dependabot PR을 확인하고,
+               그 PR들이 이미 다루는 패키지는 건드리지 않는다.
+            2. 먼저 `npm audit fix`를 실행한다. `--force`는 절대 쓰지 않는다.
+            3. 남은 취약점을 해결한다.
+               - 직접 의존성: package.json 버전 범위를 패치된 버전으로 올린다.
+               - 전이 의존성: 상위 패키지를 올려 해결되면 그렇게 하고, 안 되면 package.json "overrides"를 쓴다.
+               - 메이저 업그레이드가 필요하면 릴리스 노트/마이그레이션 가이드로 breaking change를 확인하고
+                 필요한 코드도 함께 수정한다.
+               - 패치가 없거나 안전하게 해결할 수 없는 취약점은 억지로 고치지 말고 PR 본문에 이유를 남긴다.
+            4. 아래 명령이 모두 통과해야 한다. 실패하면 원인을 고친다.
+               테스트를 skip/삭제하거나 lint 규칙을 끄는 식으로 통과시키지 않는다.
+               `npm run format:check && npm run lint && npm test && npm run build`
+            5. 변경이 있으면:
+               - `git checkout -B ${{ env.PR_BRANCH }}` 후 package.json, package-lock.json과
+                 필요한 코드 변경만 명시적으로 `git add`해서 커밋한다.
+                 커밋 메시지: `chore: resolve npm audit vulnerabilities`
+               - `git push --force origin ${{ env.PR_BRANCH }}`
+               - PR 본문은 `${{ runner.temp }}/pr-body.md`에 작성한다: 해결한 advisory 표
+                 (GHSA ID, 패키지, 이전 → 이후 버전), 코드를 고쳤다면 그 이유, 해결하지 못한 항목과 이유, 검증 결과.
+               - `${{ env.PR_BRANCH }}` 브랜치의 열린 PR이 있으면
+                 `gh pr edit ${{ env.PR_BRANCH }} --body-file ${{ runner.temp }}/pr-body.md`로 본문을 갱신하고,
+                 없으면 `gh pr create --head ${{ env.PR_BRANCH }} --title "chore: resolve npm audit vulnerabilities" --body-file ${{ runner.temp }}/pr-body.md`로 만든다.
+            6. PR을 직접 머지하거나 auto-merge를 켜지 않는다. 자동 머지 여부는 다음 job이 판단한다.
+            7. 해결할 수 있는 것이 없으면 커밋/푸시/PR 없이 이유만 출력하고 끝낸다.
+          claude_args: |
+            --max-turns 80
+            --add-dir ${{ runner.temp }}
+            --allowedTools "Read,Edit,Write,Glob,Grep,WebFetch,Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(git:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr create:*),Bash(gh pr edit:*)"
+
+  automerge:
+    needs: fix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Close stale PR or enable auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VULNERABLE: ${{ needs.fix.outputs.vulnerable }}
+        run: |
+          pr_url=$(gh pr list --head "$PR_BRANCH" --state open --json url --jq '.[0].url // empty')
+          if [ -z "$pr_url" ]; then
+            echo "열린 보안 PR이 없습니다."
+            exit 0
+          fi
+
+          if [ "$VULNERABLE" != 'true' ]; then
+            gh pr close "$pr_url" --delete-branch \
+              --comment "기본 브랜치에 남은 취약점이 없어 이 PR을 닫습니다."
+            exit 0
+          fi
+
+          base_branch=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)
+          node .github/scripts/dependency-automerge.mjs "$pr_url" "origin/$base_branch" "origin/$PR_BRANCH"
