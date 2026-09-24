@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # 일반 버전 업데이트 PR은 끄고, 보안 업데이트 PR만 받는다.
+    # (보안 업데이트는 이 제한과 별개로 동작한다.)
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: chore
+      include: scope
