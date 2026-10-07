@@ -1,20 +1,37 @@
 # Dependency security maintenance
 
-The weekly `Dependency security fix` workflow runs on Monday at 10:00 KST and can
-also be started manually. It no longer requires Claude, an AI subscription, or a
-long-lived GitHub token.
+The OpenClaw agent reviews dependencies **every Monday at 10:00 Asia/Seoul**.
+The user delegated review, fixes, validation, PR creation, and merge to the agent.
+The schedule is owned by OpenClaw, not GitHub Actions.
 
-- Run `npm audit fix` without `--force`; never automatically migrate major versions.
-- Validate audit JSON so registry errors cannot be mistaken for a clean result.
-- Keep before/after and production-only audit reports in the run summary/artifact.
-- Maintain one tracking issue for remaining advisories; update it without repeated
-  comments, and close it when the complete audit is clean.
-- Verify formatting, lint, tests, automation tests, coverage, and the build before
-  opening a PR with the maintained `peter-evans/create-pull-request` action.
-- Explicitly dispatch CI for the PR branch: `GITHUB_TOKEN` pushes do not start CI.
-- Preserve the existing dependency-only/major-version auto-merge risk policy.
-- The master ruleset must require the GitHub Actions `checks` status. Repository
-  Actions settings must allow GitHub Actions to create pull requests.
+GitHub's Claude/security-fix and Dependabot auto-merge workflows are removed.
+Dependabot detection and security-update PRs remain enabled. Only the normal CI
+workflow remains in this repository; no GitHub job automatically changes or
+merges dependencies. The agent uses the connected managed GitHub identity.
+
+Each weekly review:
+
+1. Inspect current repository state, Dependabot alerts/PRs, `npm audit` including
+   production-only results, and available patches for tracked advisories.
+2. Review upstream release notes and migration requirements. Apply compatible
+   fixes first; handle necessary major upgrades with code/CSS changes and proper
+   verification. Never run `npm audit fix --force` blindly.
+3. Validate audit JSON; registry failures are not clean audit results. Do not
+   suppress advisories or weaken tests/lint just to pass.
+4. Run formatting, lint, application/automation tests, coverage, and a production
+   build with `.github/ci.env` placeholders. Push a focused branch and PR using
+   the connected GitHub identity, preserving unrelated work.
+5. Wait for CI and deployment preview to pass, then merge the exact reviewed head
+   commit. Confirm master CI and production deployment/health. No standing
+   Dependabot auto-merge is enabled outside the agent's review.
+6. Update the single unresolved-advisory tracking issue
+   [#56](https://github.com/SIKU-KR/blog-page/issues/56) without repetitive comments;
+   close it only when the full audit is clean. Report changes or blockers to the
+   user's conversation; stay quiet when there is nothing new.
+
+The existing master ruleset requires GitHub Actions `checks`; retain that gate.
+The weekly task's timing, checklist, and latest outcome are held in its OpenClaw
+automation scratch, without a separate task-state file in the repository.
 
 ## 2026-10-07 remediation
 
