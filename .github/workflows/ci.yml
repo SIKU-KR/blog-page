@@ -3,6 +3,8 @@ name: CI
 on:
   push:
   pull_request:
+  # Security-update PRs use GITHUB_TOKEN, which does not trigger push/PR CI.
+  workflow_dispatch:
 
 jobs:
   checks:
@@ -28,6 +30,9 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Test dependency automation
+        run: node --test .github/scripts/*.test.mjs
 
       - name: Coverage
         run: npm run test:coverage

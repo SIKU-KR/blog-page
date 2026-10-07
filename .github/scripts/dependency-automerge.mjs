@@ -1,4 +1,4 @@
-// Decides whether an automated dependency PR (Dependabot or the weekly Claude fix) may be
+// Decides whether an automated dependency PR (Dependabot or the weekly npm fix) may be
 // auto-merged, then enables or disables GitHub auto-merge accordingly.
 //
 // Auto-merge only when:
@@ -82,10 +82,11 @@ const upsertComment = (comments, body) => {
 
 const risks = findRisks();
 const pr = JSON.parse(run('gh', ['pr', 'view', prUrl, '--json', 'autoMergeRequest,comments']));
+const headSha = run('git', ['rev-parse', headRef]).trim();
 
 if (risks.length === 0) {
   if (!pr.autoMergeRequest) {
-    run('gh', ['pr', 'merge', prUrl, '--auto', '--merge']);
+    run('gh', ['pr', 'merge', prUrl, '--auto', '--merge', '--match-head-commit', headSha]);
   }
   console.log(`Auto-merge enabled: ${prUrl}`);
 } else {
