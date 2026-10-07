@@ -58,6 +58,21 @@ untrusted glob patterns to these tools. This is a remaining advisory, **not** an
 audit exemption or a claim that the full audit is clean. Recheck upstream fixes
 on each maintenance run; any migration needs application and CSS verification.
 
+## 2026-10-07 editor CSS hardening
+
+The weekly review also found a relevant upstream hardening change in
+[Tiptap 3.31.4](https://github.com/ueberdosis/tiptap/releases/tag/v3.31.4):
+[CSS style attribute validation](https://github.com/ueberdosis/tiptap/commit/4d56526f570875352fabd9aabb6045e9dd63e4b9).
+All direct Tiptap packages and their Tiptap dependencies move together from
+3.31.3 to 3.31.4 to respect exact peer versions. No major migration is needed.
+This is upstream hardening, not a new npm/GitHub advisory or a fix for braces.
+
+A real table serialization regression test reproduces injected CSS declarations
+from cell/header JSON alignment on 3.31.3 and rejects them on 3.31.4. It also
+preserves normal left/center/right alignment, cell spans, and text. The review
+keeps unrelated feature/minor/major upgrades out of this focused security patch.
+The full and production-only audit baselines above remain unchanged.
+
 Local commands:
 
 ```sh
