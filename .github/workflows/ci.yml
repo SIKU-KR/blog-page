@@ -3,7 +3,7 @@ name: CI
 on:
   push:
   pull_request:
-  # Security-update PRs use GITHUB_TOKEN, which does not trigger push/PR CI.
+  # Manual verification is also available for agent-reviewed branches.
   workflow_dispatch:
 
 jobs:
